@@ -2,7 +2,7 @@ import axios from "axios";
 
 console.log("A minha URL da API é:", import.meta.env.VITE_API_URL);
 
-const baseURL = (import.meta.env.VITE_API_URL || "").trim();
+export const baseURL = (import.meta.env.VITE_API_URL || "").trim();
 
 const api = axios.create({
   baseURL: baseURL,

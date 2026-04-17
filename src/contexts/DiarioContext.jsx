@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import api, { getDiarios, getAllFormacao, getActividade } from '../services/api';
+import api, { getDiarios, getAllFormacao, getActividade, baseURL } from '../services/api';
 
 const AppContext = createContext();
 
@@ -55,7 +55,7 @@ export function DiarioProvider({ children }) {
     if (!token) return;
 
     // 3. Passa o token na URL para passar pelo SecurityFilter do Spring
-    const eventSource = new EventSource(`http://localhost:8080/api/updates/subscribe?token=${token}`);
+    const eventSource = new EventSource(`${baseURL}/api/updates/subscribe?token=${token}`);
 
     eventSource.addEventListener("db-change", (event) => {
       const changeType = event.data;
