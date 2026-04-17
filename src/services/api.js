@@ -1,7 +1,9 @@
 import axios from "axios";
 
+console.log("A minha URL da API é:", import.meta.env.VITE_API_URL);
+
 const api = axios.create({
-  baseURL:"https://backend-diario-de-bordo-production.up.railway.app",
+  baseURL:import.meta.env.VITE_API_URL,
 });
 
 // O Interceptor atua como um "porteiro de saída"
