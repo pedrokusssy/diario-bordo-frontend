@@ -2,10 +2,14 @@ import axios from "axios";
 
 console.log("A minha URL da API é:", import.meta.env.VITE_API_URL);
 
-const api = axios.create({
-  baseURL:import.meta.env.VITE_API_URL,
-});
+const baseURL = (import.meta.env.VITE_API_URL || "").trim();
 
+const api = axios.create({
+  baseURL: baseURL,
+  headers: {
+    "Content-Type": "application/json",
+  }
+});
 // O Interceptor atua como um "porteiro de saída"
 api.interceptors.request.use(async (config) => {
   // Pega o token que guardámos no passo 1
@@ -67,4 +71,6 @@ export function minhaConta(id){
 export function getAllFormacao(){
   return api.get("/formacao");
 }
+
+console.log("Axios configurado para:", baseURL);
 export default api;
