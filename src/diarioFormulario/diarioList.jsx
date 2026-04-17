@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -8,8 +7,6 @@ import {
   Flex,
   Heading,
   Badge,
-  Stack,
-  Icon,
   Table,
   Thead,
   Tbody,
@@ -19,13 +16,14 @@ import {
   TableContainer,
   IconButton,
   useColorModeValue,
-  Divider,
   VStack,
-  Center
+  Container,
 } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaEdit, FaTrash, FaCalendarAlt, FaBook, FaPlus } from "react-icons/fa";
+import { FaEdit, FaTrash, FaPlus, FaFilePdf } from "react-icons/fa";
 import { getDiarioByFormandoId, deleteDiario } from "../services/api";
+import { gerarDiarioBordoPDF } from "../services/pdfService";
 
 function DiarioList() {
   const [diarios, setDiarios] = useState([]);
@@ -35,7 +33,6 @@ function DiarioList() {
   
   const cardBg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
-  const emptyStateBg = useColorModeValue("teal.50", "gray.800");
 
   useEffect(() => {
     carregarDiarios();
@@ -44,169 +41,143 @@ function DiarioList() {
   const carregarDiarios = () => {
     setLoading(true);
     getDiarioByFormandoId(localStorage.getItem("pessoaId"))
-      .then((response) => {
-        setDiarios(response.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+      .then((response) => setDiarios(response.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  const handleExportPDF = () => {
+    // CORREÇÃO: Pegamos o nome do formando do localStorage ou definimos um padrão
+    const nomeFormando = localStorage.getItem("userName") || "Edevânio Almeida";
+
+    const dadosId = {
+      especialidade: "Ortopedia",
+      tutor: "Dr. José Tulha",
+      formando: nomeFormando, // Agora a variável está definida
+      dataInicio: "09-02-2026",
+      dataFim: "30-04-2026",
+      hospitalOrigem: "Hospital Militar",
+      horario: "08h - 16h",
+      local: "Hospital da Prelada",
+      unidade: "Bloco Operatório"
+    };
+
+    // Formata os diários para o formato que a função PDF espera
+    const atividadesFormatadas = diarios.map(d => ({
+      data: new Date(d.dataActividade).toLocaleDateString('pt-PT'),
+      atividade: d.actividade.actividade,
+      descricao: d.descricao
+    }));
+
+    gerarDiarioBordoPDF(dadosId, atividadesFormatadas);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Tem certeza que deseja apagar este diário?")) {
+    if (window.confirm("Apagar este diário?")) {
       try {
         await deleteDiario(id);
-        setDiarios(diarios.filter((diario) => diario.id !== id));
-        toast({
-          title: "Sucesso",
-          description: "Diário removido da base de dados.",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      } catch (error) {
-        toast({ title: "Erro", description: "Não foi possível remover o registro.", status: "error" });
-      }
+        setDiarios(diarios.filter(d => d.id !== id));
+        toast({ title: "Removido", status: "success" });
+      } catch (err) { toast({ title: "Erro", status: "error" }); }
     }
   };
 
   return (
-    <Box p={{ base: 4, md: 8 }} h="100%">
-      {/* HEADER DA PÁGINA */}
-      <Flex 
-        justify="space-between" 
-        align="center" 
-        mb={8} 
-        direction={{ base: "column", sm: "row" }}
-        gap={4}
+    <Box 
+      h="calc(100vh - 64px)" 
+      w="100%" 
+      display="flex" 
+      flexDirection="column"
+      overflow="hidden" // Impede scroll na página toda
+      bg="gray.50"
+    >
+      <Container 
+        maxW="container.xl" 
+        h="full" 
+        display="flex" 
+        flexDirection="column" 
+        pt={10} 
+        pb={6}
       >
-        <VStack align={{ base: "center", sm: "start" }} spacing={0}>
-          <Heading size="lg" color="teal.600">Registros do Diário</Heading>
-          <Text fontSize="sm" color="gray.500">Gerencie as suas atividades de formação</Text>
-        </VStack>
-        
-        <Button 
-          leftIcon={<FaPlus />} 
-          colorScheme="teal" 
-          shadow="md"
-          onClick={() => navigate("/novoDiario")}
-          w={{ base: "full", sm: "auto" }}
+        {/* HEADER */}
+        <Flex justify="space-between" align="flex-end" mb={8} flexShrink={0}>
+          <VStack align="start" spacing={1}>
+            <Heading size="xl" color="teal.700" letterSpacing="tight">Diário de Bordo</Heading>
+            <Text fontSize="md" color="gray.500">Registos de formação e atividades diárias</Text>
+          </VStack>
+          
+          <HStack spacing={4}>
+            <Button
+              leftIcon={<FaFilePdf />}
+              colorScheme="orange"
+              size="lg"
+              onClick={handleExportPDF}
+              isDisabled={diarios.length === 0}
+            >
+              Exportar PDF
+            </Button>
+
+            <Button 
+              leftIcon={<FaPlus />} 
+              colorScheme="teal" 
+              size="lg"
+              onClick={() => navigate("/novoDiario")}
+            >
+              Novo Registro
+            </Button>
+          </HStack>
+        </Flex>
+
+        {/* ÁREA DA TABELA COM SCROLL INTERNO */}
+        <Box 
+          flex="1" 
+          bg={cardBg} 
+          borderRadius="2xl" 
+          borderWidth="1px" 
+          borderColor={borderColor}
+          shadow="2xl"
+          display="flex"
+          flexDirection="column"
+          overflow="hidden"
         >
-          Novo Registro
-        </Button>
-      </Flex>
-
-      {/* --- VISUALIZAÇÃO COM DADOS --- */}
-      {diarios.length > 0 ? (
-        <>
-          {/* MOBILE: CARDS */}
-          <Stack spacing={4} display={{ base: "flex", md: "none" }}>
-            {diarios.map((diario) => (
-              <Box
-                key={diario.id}
-                p={5}
-                bg={cardBg}
-                borderWidth="1px"
-                borderColor={borderColor}
-                borderRadius="xl"
-                shadow="sm"
-              >
-                <Flex justify="space-between" align="center" mb={3}>
-                  <HStack color="teal.500" fontSize="sm">
-                    <Icon as={FaCalendarAlt} />
-                    <Text fontWeight="bold">
-                      {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
-                    </Text>
-                  </HStack>
-                  <Badge colorScheme="teal" variant="subtle" borderRadius="md">
-                    {diario.actividade.actividade}
-                  </Badge>
-                </Flex>
-                
-                <Text fontSize="sm" color="gray.600" mb={4} noOfLines={3}>
-                  {diario.descricao}
-                </Text>
-                
-                <Divider mb={4} />
-                
-                <HStack justify="flex-end" spacing={3}>
-                  <IconButton
-                    icon={<FaEdit />}
-                    size="sm"
-                    colorScheme="blue"
-                    variant="ghost"
-                    onClick={() => navigate(`/editarDiario/${diario.id}`)}
-                    aria-label="Editar"
-                  />
-                  <IconButton
-                    icon={<FaTrash />}
-                    size="sm"
-                    colorScheme="red"
-                    variant="ghost"
-                    onClick={() => handleDelete(diario.id)}
-                    aria-label="Apagar"
-                  />
-                </HStack>
-              </Box>
-            ))}
-          </Stack>
-
-          {/* DESKTOP: TABELA MODERNA */}
-          <TableContainer
-            display={{ base: "none", md: "block" }}
-            bg={cardBg}
-            borderWidth="1px"
-            borderColor={borderColor}
-            borderRadius="xl"
-            shadow="xl"
+          <TableContainer 
+            overflowY="auto" // Scroll apenas vertical
+            flex="1"
+            sx={{
+              "&::-webkit-scrollbar": { width: "8px" },
+              "&::-webkit-scrollbar-thumb": { background: "teal.500", borderRadius: "10px" },
+            }}
           >
-            <Table variant="simple">
-              <Thead bg="gray.50">
+            <Table variant="simple" size="lg">
+              <Thead position="sticky" top={0} bg={cardBg} zIndex={10} shadow="sm">
                 <Tr>
-                  <Th color="gray.600">Data</Th>
-                  <Th color="gray.600">Atividade</Th>
-                  <Th color="gray.600">Descrição</Th>
-                  <Th color="gray.600" textAlign="center">Ações</Th>
+                  <Th py={5} color="teal.700">Data</Th>
+                  <Th color="teal.700">Atividade</Th>
+                  <Th color="teal.700">Descrição Detalhada</Th>
+                  <Th textAlign="center" color="teal.700">Ações</Th>
                 </Tr>
               </Thead>
+              
               <Tbody>
                 {diarios.map((diario) => (
-                  <Tr key={diario.id} _hover={{ bg: "teal.50", transition: "0.2s" }}>
-                    <Td fontWeight="semibold">
+                  <Tr key={diario.id} _hover={{ bg: "teal.50" }}>
+                    <Td fontWeight="bold" w="180px">
                       {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
                     </Td>
-                    <Td>
-                      <Badge colorScheme="teal" px={2} py={1} borderRadius="md">
+                    <Td w="220px">
+                      <Badge colorScheme="teal" p={2} borderRadius="md" variant="subtle">
                         {diario.actividade.actividade}
                       </Badge>
                     </Td>
-                    <Td maxW="400px">
-                      <Text noOfLines={1} fontSize="sm" color="gray.600">
+                    <Td>
+                      <Text fontSize="sm" color="gray.600" lineHeight="tall" noOfLines={2}>
                         {diario.descricao}
                       </Text>
                     </Td>
-                    <Td>
-                      <HStack spacing={2} justify="center">
-                        <Tooltip label="Editar Registro">
-                          <IconButton
-                            icon={<FaEdit />}
-                            size="sm"
-                            variant="outline"
-                            colorScheme="blue"
-                            onClick={() => navigate(`/editarDiario/${diario.id}`)}
-                          />
-                        </Tooltip>
-                        <Tooltip label="Eliminar Registro">
-                          <IconButton
-                            icon={<FaTrash />}
-                            size="sm"
-                            variant="outline"
-                            colorScheme="red"
-                            onClick={() => handleDelete(diario.id)}
-                          />
-                        </Tooltip>
+                    <Td w="120px">
+                      <HStack justify="center" spacing={1}>
+                        <IconButton icon={<FaEdit />} variant="ghost" colorScheme="blue" size="sm" onClick={() => navigate(`/editarDiario/${diario.id}`)} />
+                        <IconButton icon={<FaTrash />} variant="ghost" colorScheme="red" size="sm" onClick={() => handleDelete(diario.id)} />
                       </HStack>
                     </Td>
                   </Tr>
@@ -214,102 +185,11 @@ function DiarioList() {
               </Tbody>
             </Table>
           </TableContainer>
-        </>
-      ) : (
-        /* --- ESTADO VAZIO (MODERNO PARA MONITORES) --- */
-        !loading && (
-          <Flex
-            direction="column"
-            align="center"
-            justify="center"
-            h="100%"
-            minH="450px"
-            textAlign="center"
-            px={6}
-          >
-            <Box 
-              mb={8} 
-              p={10} 
-              bg={emptyStateBg} 
-              borderRadius="3xl" 
-              color="teal.400"
-              position="relative"
-            >
-              <Icon as={FaBook} boxSize={20} />
-              <Box 
-                position="absolute"
-                bottom="-2"
-                right="-2"
-                bg="white"
-                p={3}
-                borderRadius="full"
-                shadow="lg"
-              >
-                <Icon as={FaPlus} boxSize={5} color="orange.400" />
-              </Box>
-            </Box>
-
-            <VStack spacing={4} maxW="500px">
-              <Heading size="xl" color="gray.800" letterSpacing="tight">
-                Nada por aqui ainda...
-              </Heading>
-              
-              <Text fontSize="lg" color="gray.500">
-                O seu histórico de atividades está vazio. Comece a registrar 
-                o seu progresso diário agora mesmo.
-              </Text>
-
-              <Button
-                mt={6}
-                colorScheme="teal"
-                size="lg"
-                height="60px"
-                px={10}
-                borderRadius="xl"
-                shadow="lg"
-                _hover={{ transform: "translateY(-3px)", shadow: "2xl" }}
-                onClick={() => navigate("/novoDiario")}
-              >
-                Criar meu primeiro registro
-              </Button>
-            </VStack>
-
-            <Text mt={16} fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="widest">
-              Plataforma Diário de Bordo • v1.0
-            </Text>
-          </Flex>
-        )
-      )}
+        </Box>
+      </Container>
     </Box>
   );
-}
-
-// Componente Tooltip simples para as ações (opcional)
-function Tooltip({ label, children }) {
-  return (
-    <Box position="relative" role="group">
-      {children}
-      <Box
-        display="none"
-        _groupHover={{ display: "block" }}
-        position="absolute"
-        bottom="100%"
-        left="50%"
-        transform="translateX(-50%)"
-        bg="gray.800"
-        color="white"
-        fontSize="xs"
-        px={2}
-        py={1}
-        borderRadius="md"
-        whiteSpace="nowrap"
-        mb={2}
-        zIndex={10}
-      >
-        {label}
-      </Box>
-    </Box>
-  );
+  1
 }
 
 export default DiarioList;
