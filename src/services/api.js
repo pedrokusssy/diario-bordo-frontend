@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL:"backend-diario-de-bordo-production.up.railway.app",
+  baseURL:"https://backend-diario-de-bordo-production.up.railway.app",
 });
 
 // O Interceptor atua como um "porteiro de saída"
