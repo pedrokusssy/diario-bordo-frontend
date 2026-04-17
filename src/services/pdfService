@@ -1,0 +1,64 @@
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable'; // Mudança aqui: importamos o autoTable
+import { ENSINAR_CAMOES_LOGO } from '../assets/logos-pdfs'; 
+
+export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // --- 1. CABEÇALHO ---
+  doc.addImage(ENSINAR_CAMOES_LOGO, 'PNG', 14, 10, 40, 18);
+
+  // --- 2. TÍTULO E TABELA DE IDENTIFICAÇÃO ---
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("DIÁRIO DE BORDO – FORMAÇÃO ESPECIALIZADA", pageWidth / 2, 35, { align: "center" });
+
+  // USAMOS autoTable(doc, {...}) em vez de doc.autoTable({...})
+  autoTable(doc, {
+    startY: 40,
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
+    headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0] },
+    body: [
+      [{ content: 'ESPECIALIDADE', fontStyle: 'bold' }, { content: dadosFormacao.especialidade, colSpan: 3 }],
+      [{ content: 'TUTOR(A)', fontStyle: 'bold' }, { content: dadosFormacao.tutor, colSpan: 3 }],
+      [
+        { content: 'FORMANDO(A)', fontStyle: 'bold' }, { content: dadosFormacao.formando },
+        { content: 'Hospital de Origem:', fontStyle: 'bold' }, { content: dadosFormacao.hospitalOrigem }
+      ],
+      [
+        { content: 'PERÍODO', fontStyle: 'bold' }, { content: dadosFormacao.periodo },
+        { content: 'Horário:', fontStyle: 'bold' }, { content: dadosFormacao.horario }
+      ],
+      [{ content: 'LOCAL FORMAÇÃO', fontStyle: 'bold' }, { content: dadosFormacao.local, colSpan: 3 }],
+    ],
+    columnStyles: { 0: { cellWidth: 30 }, 2: { cellWidth: 35 } }
+  });
+
+  // --- 3. TABELA DE ATIVIDADES ---
+  // A variável finalY continua a ser acessível através do doc.lastAutoTable.finalY
+  const currentY = doc.lastAutoTable.finalY || 40;
+
+  autoTable(doc, {
+    startY: currentY + 5,
+    head: [['DATA', 'ATIVIDADE', 'DESCRIÇÃO/OBSERVAÇÃO DA ATIVIDADE', 'ASSINATURA TUTOR(A)']],
+    body: listaAtividades.map(act => [act.data, act.atividade, act.descricao, '']),
+    theme: 'grid',
+    styles: { fontSize: 8, minCellHeight: 12 },
+    headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], halign: 'center' },
+    columnStyles: { 0: { cellWidth: 22 }, 3: { cellWidth: 28 } }
+  });
+
+  // --- 4. RODAPÉ ---
+  const footerY = pageHeight - 25;
+  doc.addImage(ENSINAR_CAMOES_LOGO, 'PNG', 14, footerY, 30, 12);
+  
+  doc.setFontSize(7);
+  doc.setTextColor(100);
+  const info = "ENSINAR SAÚDE NORTE - ASSOCIAÇÃO PARA O ENSINO, INVESTIGAÇÃO E DESENVOLVIMENTO DOS PROFISSIONAIS DE SAÚDE";
+  doc.text(info, pageWidth / 2, pageHeight - 10, { align: "center" });
+
+  doc.save("Diario_Bordo_Oficial.pdf");
+};
