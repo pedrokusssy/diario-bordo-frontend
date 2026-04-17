@@ -229,7 +229,7 @@ function Diario() {
       </Box>
 
       <Text mt={8} textAlign="center" fontSize="sm" color="gray.400">
-        Os seus dados são salvos de forma segura na plataforma.
+        Os seus dados são salvos de forma segura na plataforma. 1
       </Text>
     </Container>
   );
