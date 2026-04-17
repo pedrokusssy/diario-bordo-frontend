@@ -14,14 +14,16 @@ import {
   useColorModeValue,
   Text,
   Center,
-  Spinner
+  Spinner,
+  Container,
+  Divider,
+  VStack
 } from "@chakra-ui/react";
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FaBook, FaCalendarAlt, FaTasks, FaSave, FaEdit } from "react-icons/fa";
+import { FaBook, FaCalendarAlt, FaTasks, FaSave, FaEdit, FaArrowLeft } from "react-icons/fa";
 
-// Importamos o Hook global que criamos
 import { useAppGlobal } from "../contexts/DiarioContext"; 
 import { createDiario, getDiarioById, updateDiario } from "../services/api";
 
@@ -30,19 +32,16 @@ function Diario() {
   const navigate = useNavigate();
   const toast = useToast();
 
-  // 1. Pegamos os dados do contexto
   const { atividades, usuario, loading } = useAppGlobal();
 
-  // 2. DEFINIÇÃO DAS CORES (O que estava a faltar e causou o erro!)
   const bg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
+  const secondaryTextColor = useColorModeValue("gray.500", "gray.400");
 
-  // 3. States do formulário
   const [actividadeId, setActividadeId] = useState("");
   const [dataActividade, setDataActividade] = useState("");
   const [descricao, setDescricao] = useState("");
   const [buscandoDados, setBuscandoDados] = useState(false);
-
 
   useEffect(() => {
     if (id) {
@@ -50,66 +49,31 @@ function Diario() {
       getDiarioById(id)
         .then(response => {
           const dados = response.data;
-          // Preenchemos os campos com o que veio da Base de Dados
           setActividadeId(dados.actividade.id);
           setDataActividade(dados.dataActividade);
           setDescricao(dados.descricao);
         })
         .catch(err => {
-          console.error("Erro ao buscar diário:", err);
           toast({ title: "Erro", description: "Não foi possível carregar os dados.", status: "error" });
         })
         .finally(() => setBuscandoDados(false));
-    } else {
-      // Se não houver ID, limpamos os campos para um novo registro
-      setActividadeId("");
-      setDataActividade("");
-      setDescricao("");
     }
   }, [id, toast]);
 
-  
-
-  // 4. PROTEÇÃO: Se estiver a carregar ou a buscar dados de edição, mostra o Spinner
-  if (loading || buscandoDados) {
-    return (
-      <Center h="60vh">
-        <Spinner size="xl" color="teal.500" thickness="4px" />
-      </Center>
-    );
-  }
-
-  // 5. PROTEÇÃO ADICIONAL: Se não houver usuário, não tenta renderizar o resto
-  if (!usuario) {
-    return (
-      <Center h="60vh">
-        <Text>A carregar dados do utilizador...</Text>
-      </Center>
-    );
-  }
-
-  // A partir daqui, usuario.id e bg estão seguros para serem usados.
-  // APENAS AQUI, após as verificações acima, é seguro acessar usuario.id
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!actividadeId || !dataActividade || !descricao) {
-      // ... toast
+      toast({ title: "Campos obrigatórios", description: "Por favor, preencha todos os campos.", status: "warning" });
       return;
     }
 
-    // Agora é seguro usar usuario.id
     const dadosDoDiario = {
       formando_id: localStorage.getItem("pessoaId"), 
       actividade_id: actividadeId,
       dataActividade: dataActividade,
       descricao: descricao,
     };
-
-    // ... try/catch
-
-  // ... renderização do formulário
 
     try {
       if (id) {
@@ -121,60 +85,85 @@ function Diario() {
       }
       navigate("/diarios");
     } catch (error) {
-      console.error(error);
       toast({ title: "Erro", description: "Ocorreu um erro ao salvar.", status: "error" });
     }
   };
 
-  // Se o contexto ainda estiver carregando ou buscando dados de edição
+  // Loader Centralizado
   if (loading || buscandoDados) {
     return (
-      <Center h="60vh">
-        <Spinner size="xl" color="teal.500" thickness="4px" />
+      <Center h="70vh">
+        <VStack spacing={4}>
+          <Spinner size="xl" color="teal.500" thickness="4px" speed="0.65s" />
+          <Text color="gray.500" fontWeight="medium">A preparar o seu diário...</Text>
+        </VStack>
       </Center>
     );
   }
 
-  if (loading) return <Flex justify="center" p={10}><Spinner size="xl" /></Flex>;
-  if (!usuario) return <Text>A carregar dados do utilizador...</Text>;
-
   return (
-    <Box maxW="800px" mx="auto" mt={{ base: 4, md: 10 }} p={{ base: 4, md: 0 }}>
+    /* Container XL para dar amplitude e py=12 para respiração vertical */
+    <Container maxW="container.md" py={12}>
+      
+      {/* Botão de Voltar Subtil */}
+      <Button 
+        leftIcon={<FaArrowLeft />} 
+        variant="ghost" 
+        mb={6} 
+        colorScheme="teal" 
+        size="sm"
+        onClick={() => navigate("/diarios")}
+      >
+        Voltar para a lista
+      </Button>
+
       <Box
         bg={bg}
-        p={{ base: 6, md: 10 }}
-        borderRadius="xl"
+        p={{ base: 8, md: 12 }} // Mais padding interno
+        borderRadius="2xl"
         borderWidth="1px"
         borderColor={borderColor}
-        boxShadow="xl"
+        boxShadow="2xl"
+        position="relative"
+        overflow="hidden"
       >
-        <Flex align="center" mb={8}>
-          <Icon as={FaBook} w={8} h={8} color="teal.500" mr={4} />
+        {/* Barra de destaque superior */}
+        <Box position="absolute" top={0} left={0} right={0} h="4px" bg="teal.500" />
+
+        <Flex align="center" mb={10}>
+          <Center w={14} h={14} bg="teal.50" borderRadius="full" mr={5}>
+            <Icon as={id ? FaEdit : FaBook} w={6} h={6} color="teal.500" />
+          </Center>
           <Box>
-            <Heading size="lg" color="teal.600">
-              {id ? "Editar Registro" : "Novo Diário"}
+            <Heading size="lg" color="gray.800" letterSpacing="tight">
+              {id ? "Editar Registro" : "Novo Lançamento"}
             </Heading>
-            <Text color="gray.500" fontSize="sm">
-              Formando: <Text as="span" fontWeight="bold" color="gray.700">{usuario?.nome}</Text>
+            <Text color={secondaryTextColor} fontSize="md">
+              Formando: <Text as="span" fontWeight="bold" color="teal.600">{usuario?.nome}</Text>
             </Text>
           </Box>
         </Flex>
 
+        <Divider mb={10} />
+
         <form onSubmit={handleSubmit}>
-          <Stack spacing={6}>
-            <Stack direction={{ base: "column", md: "row" }} spacing={4}>
+          <Stack spacing={8}>
+            {/* Linha Dupla para Atividade e Data */}
+            <Stack direction={{ base: "column", md: "row" }} spacing={6}>
               <FormControl isRequired>
-                <FormLabel fontWeight="bold" color="teal.700">
-                  <Icon as={FaTasks} mr={2} />
-                  Actividade
+                <FormLabel fontWeight="bold" color="gray.700" mb={3}>
+                  <Icon as={FaTasks} mr={2} color="teal.400" />
+                  Atividade Realizada
                 </FormLabel>
                 <Select
-                  placeholder="Selecione uma atividade"
+                  placeholder="Selecione a atividade"
                   value={actividadeId}
                   onChange={(e) => setActividadeId(e.target.value)}
                   focusBorderColor="teal.400"
+                  size="lg"
+                  borderRadius="lg"
+                  bg={useColorModeValue("gray.50", "gray.800")}
                 >
-                  {/* Renderizamos as atividades que já vieram do contexto global */}
                   {atividades.map((act) => (
                     <option value={act.id} key={act.id}>
                       {act.actividade}
@@ -184,51 +173,65 @@ function Diario() {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel fontWeight="bold" color="teal.700">
-                  <Icon as={FaCalendarAlt} mr={2} />
-                  Data
+                <FormLabel fontWeight="bold" color="gray.700" mb={3}>
+                  <Icon as={FaCalendarAlt} mr={2} color="teal.400" />
+                  Data do Registro
                 </FormLabel>
                 <Input
                   type="date"
                   value={dataActividade}
                   onChange={(e) => setDataActividade(e.target.value)}
                   focusBorderColor="teal.400"
+                  size="lg"
+                  borderRadius="lg"
+                  bg={useColorModeValue("gray.50", "gray.800")}
                 />
               </FormControl>
             </Stack>
 
             <FormControl isRequired>
-              <FormLabel fontWeight="bold" color="teal.700">
-                Descrição da Actividade
+              <FormLabel fontWeight="bold" color="gray.700" mb={3}>
+                Descrição Detalhada
               </FormLabel>
               <Textarea
-                placeholder="Descreva detalhadamente o que foi realizado..."
+                placeholder="Descreva detalhadamente o que foi realizado, observações e aprendizagens..."
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                size="md"
-                rows={6}
+                size="lg"
+                borderRadius="lg"
+                rows={8}
                 focusBorderColor="teal.400"
+                bg={useColorModeValue("gray.50", "gray.800")}
+                lineHeight="tall"
               />
             </FormControl>
 
-            <Flex justify={{ base: "stretch", md: "flex-end" }} pt={4}>
+            <Box pt={6}>
               <Button
                 type="submit"
                 colorScheme="teal"
-                size="lg"
-                px={12}
+                size="xl" // Botão maior e mais impactante
+                w="full"
+                h="60px"
+                fontSize="lg"
                 leftIcon={id ? <FaEdit /> : <FaSave />}
-                w={{ base: "full", md: "auto" }}
-                shadow="lg"
+                shadow="xl"
+                borderRadius="xl"
                 _hover={{ transform: "translateY(-2px)", boxShadow: "2xl" }}
+                _active={{ transform: "scale(0.98)" }}
+                transition="all 0.2s"
               >
-                {id ? "Atualizar Registro" : "Salvar Diário"}
+                {id ? "Guardar Alterações" : "Finalizar Registro"}
               </Button>
-            </Flex>
+            </Box>
           </Stack>
         </form>
       </Box>
-    </Box>
+
+      <Text mt={8} textAlign="center" fontSize="sm" color="gray.400">
+        Os seus dados são salvos de forma segura na plataforma.
+      </Text>
+    </Container>
   );
 }
 
