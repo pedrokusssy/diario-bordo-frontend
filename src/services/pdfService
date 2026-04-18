@@ -1,9 +1,16 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ENSINAR_CAMOES_LOGO, ENSINAR_SAUDE_LOGO } from '../assets/logos-pdfs';
+import { DM_SERIF_BASE64 } from "../assets/DMSerifDisplayRegular";
+
 
 export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
   const doc = new jsPDF();
+  
+  // --- CONFIGURAÇÃO DA FONTE CUSTOMIZADA ---
+  doc.addFileToVFS("DMSerifDisplay-Regular.ttf", DM_SERIF_BASE64);
+  doc.addFont("DMSerifDisplay-Regular.ttf", "DMSerif", "normal");
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -13,12 +20,10 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
   let slotsUsados = 0;
 
   listaAtividades.forEach((act) => {
-    // Se a descrição for maior que 280, ocupa 2 slots, caso contrário 1
+    // Se a descrição > 280 caracteres, ocupa 2 slots
     const peso = (act.descricao && act.descricao.length > 280) ? 2 : 1;
 
-    // Se o peso da atividade não couber nos slots restantes da página (max 5)
     if (slotsUsados + peso > 5) {
-      // Preenchemos o resto da página com linhas vazias antes de criar nova
       while (slotsUsados < 5) {
         paginaAtual.push({ data: '', atividade: '', descricao: '', peso: 1 });
         slotsUsados++;
@@ -27,128 +32,140 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
       paginaAtual = [];
       slotsUsados = 0;
     }
-
     paginaAtual.push({ ...act, peso });
     slotsUsados += peso;
   });
 
-  // Preencher a última página se necessário para manter as 5 linhas visuais
   while (slotsUsados < 5 && slotsUsados > 0) {
     paginaAtual.push({ data: '', atividade: '', descricao: '', peso: 1 });
     slotsUsados++;
   }
   if (paginaAtual.length > 0) paginasDeAtividades.push(paginaAtual);
-
-  // Se não houver atividades, garantir pelo menos uma página vazia
   if (paginasDeAtividades.length === 0) {
     paginasDeAtividades.push(Array(5).fill({ data: '', atividade: '', descricao: '', peso: 1 }));
   }
 
   const totalPaginas = paginasDeAtividades.length;
 
+  // --- ESTRUTURA FIXA (CABEÇALHO, IDENTIFICAÇÃO E RODAPÉ) ---
   const desenharEstruturaFixa = (numeroPagina) => {
-    // 1. O NIF NA MARGEM ESQUERDA (Coordenadas originais preservadas)
+    // NIF na margem
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(6);
     doc.setTextColor(150);
     doc.text("N.I.F. 515 675 836", 10, 235, { angle: 90 });
 
-    // 2. LOGOTIPO SUPERIOR
+    // Logo Superior
     doc.addImage(ENSINAR_SAUDE_LOGO, 'PNG', 3, 10, 60, 50);
 
-    // 3. TÍTULO CENTRALIZADO
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    // Título Principal com a nova fonte
+    doc.setFont("DMSerif", "normal");
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
     doc.text("DIÁRIO DE BORDO – FORMAÇÃO ESPECIALIZADA", pageWidth / 2, 62, { align: "center" });
 
-    // 4. TABELA DE IDENTIFICAÇÃO (Estilos e larguras originais preservados)
+    // Tabela de Identificação (3 Colunas)
     autoTable(doc, {
       startY: 68,
       theme: 'grid',
       styles: { fontSize: 8, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.3 },
       body: [
-        [{ content: 'ESPECIALIDADE', fontStyle: 'bold' }, { content: dadosFormacao.especialidade || '', colSpan: 2 }],
-        [{ content: 'TUTOR(A)', fontStyle: 'bold' }, { content: dadosFormacao.tutor || '', colSpan: 2 }],
+        [{ content: 'ESPECIALIDADE' }, { content: dadosFormacao.especialidade || '', colSpan: 2 }],
+        [{ content: 'TUTOR(A)' }, { content: dadosFormacao.tutor || '', colSpan: 2 }],
         [
-          { content: 'FORMANDO(A)', fontStyle: 'bold' },
+          { content: 'FORMANDO(A)' },
           { content: dadosFormacao.formando || '' },
           { content: `Hospital de Origem: ${dadosFormacao.hospitalOrigem || ''}` }
         ],
         [
-          { content: 'PERÍODO', fontStyle: 'bold' },
+          { content: 'PERÍODO' },
           { content: dadosFormacao.periodo || '' },
           { content: `Horário: ${dadosFormacao.horario || ''}` }
         ],
-        [{ content: 'LOCAL FORMAÇÃO', fontStyle: 'bold' }, { content: dadosFormacao.local || '', colSpan: 2 }],
-        [{ content: 'UNIDADE', fontStyle: 'bold' }, { content: dadosFormacao.unidade || '', colSpan: 2 }],
+        [{ content: 'LOCAL FORMAÇÃO' }, { content: dadosFormacao.local || '', colSpan: 2 }],
+        [{ content: 'UNIDADE' }, { content: dadosFormacao.unidade || '', colSpan: 2 }],
       ],
-      columnStyles: {
-        0: { cellWidth: 30 },
-        1: { cellWidth: 55 },
-        2: { cellWidth: 75 }
-      },
-      margin: { left: 25, right: 25 }
+      columnStyles: { 0: { cellWidth: 30 }, 1: { cellWidth: 55 }, 2: { cellWidth: 75 } },
+      margin: { left: 25, right: 25 },
+      didParseCell: function (data) {
+        if (data.section === 'body') {
+          // Rótulos e textos fixos com ":" em Helvetica Bold
+          if (data.column.index === 0 || (data.cell.text[0] && data.cell.text[0].includes(':'))) {
+            data.cell.styles.font = "helvetica";
+            data.cell.styles.fontStyle = "bold";
+          } else {
+            // Dados inseridos com DM Serif
+            data.cell.styles.font = "DMSerif";
+            data.cell.styles.fontSize = 9;
+          }
+        }
+      }
     });
 
-    // 5. RODAPÉ (Posições originais preservadas)
+    // Rodapé
     const footerY = pageHeight - 20;
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.setTextColor(0);
     doc.text(`Folha nº ${numeroPagina}/${totalPaginas}`, pageWidth - 40, pageHeight - 56, { align: 'right' });
 
     doc.addImage(ENSINAR_SAUDE_LOGO, 'PNG', 5, footerY - 25, 30, 25);
     doc.addImage(ENSINAR_CAMOES_LOGO, 'PNG', pageWidth - 47, footerY - 20, 40, 20);
 
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(5);
     const info = "ENSINAR SAÚDE NORTE – ASSOCIAÇÃO PARA O ENSINO, INVESTIGAÇÃO E DESENVOLVIMENTO DOS PROFISSIONAIS DE SAÚDE\nRUA DA MATA, Nº 180 | 4480-565 TOUGUINHÓ - VILA DO CONDE | TEL: (+351) 252 097 700";
     doc.text(info, pageWidth / 2, pageHeight - 45, { align: "center" });
   };
 
-  // --- CICLO DE GERAÇÃO DAS PÁGINAS ---
+  // --- GERAÇÃO DAS PÁGINAS DE ATIVIDADES ---
   paginasDeAtividades.forEach((atividadesDaPagina, i) => {
     if (i > 0) doc.addPage();
     desenharEstruturaFixa(i + 1);
-
-    autoTable(doc, {
-      startY: 108,
-      head: [['DATA', 'ATIVIDADE', 'DESCRIÇÃO/ OBSERVAÇÃO DA ATIVIDADE', 'ASSINATURA TUTOR(A)']],
-      body: atividadesDaPagina.map(act => [act.data, act.atividade, act.descricao, '']),
-      theme: 'grid',
-      styles: {
-        fontSize: 7,
-        minCellHeight: 23, // Altura base para 1 slot
-        valign: 'middle',
-        lineColor: [0, 0, 0],
-        lineWidth: 0.1
-      },
-      headStyles: {
-        fillColor: [210, 210, 210],
-        textColor: [0, 0, 0],
-        halign: 'center',
-        fontStyle: 'bold',
-        cellPadding: 1.5,
-        minCellHeight: 0
-      },
-      columnStyles: {
-        0: { cellWidth: 25, halign: "center" },
-        1: { cellWidth: 35, halign: "center" },
-        2: { cellWidth: 75 },
-        3: { cellWidth: 25 }
-      },
-      margin: { left: 25, right: 25 },
-
-      // APLICAÇÃO DA LÓGICA DE ALTURA DINÂMICA POR LINHA
-      didParseCell: function (data) {
-        if (data.section === 'body') {
-          const rowIndex = data.row.index;
-          const item = atividadesDaPagina[rowIndex];
-          if (item && item.peso === 2) {
-            // Se a descrição for longa, a linha ganha o dobro da altura (23 * 2)
-            data.row.height = 46;
-          }
+autoTable(doc, {
+    startY: 108,
+    head: [['DATA', 'ATIVIDADE', 'DESCRIÇÃO/ OBSERVAÇÃO DA ATIVIDADE', 'ASSINATURA TUTOR(A)']],
+    body: atividadesDaPagina.map(act => [act.data, act.atividade, act.descricao, '']),
+    theme: 'grid',
+    // Estilo padrão para o CORPO da tabela (Dados preenchidos)
+    styles: {
+      font: "helvetica", 
+      fontSize: 8.5,
+      minCellHeight: 23,
+      valign: 'middle',
+      lineColor: [0, 0, 0],
+      lineWidth: 0.1,
+      textColor: [60, 60, 60] // Cinza escuro para os dados
+    },
+    // Estilo específico para o CABEÇALHO (Títulos)
+    headStyles: {
+      font: "DMSerif",      // A tua fonte serifada nos títulos
+      fontSize: 10,
+      fillColor: [210, 210, 210],
+      textColor: [0, 0, 0], // Preto puro para destacar o título
+      halign: 'center',
+      cellPadding: 1.5,
+      minCellHeight: 0
+    },
+    columnStyles: {
+      0: { cellWidth: 25, halign: "center" },
+      1: { cellWidth: 35, halign: "center" },
+      2: { cellWidth: 75 },
+      3: { cellWidth: 27 }
+    },
+    margin: { left: 25, right: 25 },
+    
+    didParseCell: function (data) {
+      // Mantém a tua lógica de altura dinâmica (slots)
+      if (data.section === 'body') {
+        const rowIndex = data.row.index;
+        const item = atividadesDaPagina[rowIndex];
+        if (item && item.peso === 2) {
+          data.row.height = 46;
         }
       }
-    });
+    }
   });
+});
 
   doc.save("Diario_Bordo_Final.pdf");
 };
