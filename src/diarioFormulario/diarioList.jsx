@@ -30,7 +30,7 @@ function DiarioList() {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
   const navigate = useNavigate();
-  
+
   const cardBg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
 
@@ -83,20 +83,20 @@ function DiarioList() {
   };
 
   return (
-    <Box 
-      h="calc(100vh - 64px)" 
-      w="100%" 
-      display="flex" 
+    <Box
+      h="calc(100vh - 64px)"
+      w="100%"
+      display="flex"
       flexDirection="column"
       overflow="hidden" // Impede scroll na página toda
       bg="gray.50"
     >
-      <Container 
-        maxW="container.xl" 
-        h="full" 
-        display="flex" 
-        flexDirection="column" 
-        pt={10} 
+      <Container
+        maxW="container.xl"
+        h="full"
+        display="flex"
+        flexDirection="column"
+        pt={10}
         pb={6}
       >
         {/* HEADER */}
@@ -105,7 +105,7 @@ function DiarioList() {
             <Heading size="xl" color="teal.700" letterSpacing="tight">Diário de Bordo</Heading>
             <Text fontSize="md" color="gray.500">Registos de formação e atividades diárias</Text>
           </VStack>
-          
+
           <HStack spacing={4}>
             <Button
               leftIcon={<FaFilePdf />}
@@ -117,9 +117,9 @@ function DiarioList() {
               Exportar PDF
             </Button>
 
-            <Button 
-              leftIcon={<FaPlus />} 
-              colorScheme="teal" 
+            <Button
+              leftIcon={<FaPlus />}
+              colorScheme="teal"
               size="lg"
               onClick={() => navigate("/novoDiario")}
             >
@@ -129,18 +129,18 @@ function DiarioList() {
         </Flex>
 
         {/* ÁREA DA TABELA COM SCROLL INTERNO */}
-        <Box 
-          flex="1" 
-          bg={cardBg} 
-          borderRadius="2xl" 
-          borderWidth="1px" 
+        <Box
+          flex="1"
+          bg={cardBg}
+          borderRadius="2xl"
+          borderWidth="1px"
           borderColor={borderColor}
           shadow="2xl"
           display="flex"
           flexDirection="column"
           overflow="hidden"
         >
-          <TableContainer 
+          <TableContainer
             overflowY="auto" // Scroll apenas vertical
             flex="1"
             sx={{
@@ -157,7 +157,7 @@ function DiarioList() {
                   <Th textAlign="center" color="teal.700">Ações</Th>
                 </Tr>
               </Thead>
-              
+
               <Tbody>
                 {diarios.map((diario) => (
                   <Tr key={diario.id} _hover={{ bg: "teal.50" }}>
@@ -169,8 +169,16 @@ function DiarioList() {
                         {diario.actividade.actividade}
                       </Badge>
                     </Td>
-                    <Td>
-                      <Text fontSize="sm" color="gray.600" lineHeight="tall" noOfLines={2}>
+                    {/* Coluna da Descrição Detalhada */}
+                    <Td maxW="400px"> {/* Definimos uma largura máxima para a célula */}
+                      <Text
+                        fontSize="sm"
+                        color="gray.600"
+                        lineHeight="tall"
+                        whiteSpace="normal"    // Garante que o texto quebre a linha
+                        wordBreak="break-word" // Quebra palavras muito longas (como links ou textos sem espaço)
+                        noOfLines={3}          // Podes aumentar de 2 para 3 ou remover se quiseres ver o texto todo
+                      >
                         {diario.descricao}
                       </Text>
                     </Td>
