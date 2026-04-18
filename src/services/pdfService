@@ -21,7 +21,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
 
   listaAtividades.forEach((act) => {
     // Se a descrição > 280 caracteres, ocupa 2 slots
-    const peso = (act.descricao && act.descricao.length > 280) ? 2 : 1;
+    const peso = (act.descricao && act.descricao.length > 270) ? 2 : 1;
 
     if (slotsUsados + peso > 5) {
       while (slotsUsados < 5) {
@@ -106,7 +106,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
     const footerY = pageHeight - 20;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text(`Folha nº ${numeroPagina}/${totalPaginas}`, pageWidth - 40, pageHeight - 56, { align: 'right' });
+    doc.text(`Folha nº ${numeroPagina}/${totalPaginas}`, pageWidth - 40, pageHeight - 50, { align: 'right' });
 
     doc.addImage(ENSINAR_SAUDE_LOGO, 'PNG', 5, footerY - 25, 30, 25);
     doc.addImage(ENSINAR_CAMOES_LOGO, 'PNG', pageWidth - 47, footerY - 20, 40, 20);
@@ -114,7 +114,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5);
     const info = "ENSINAR SAÚDE NORTE – ASSOCIAÇÃO PARA O ENSINO, INVESTIGAÇÃO E DESENVOLVIMENTO DOS PROFISSIONAIS DE SAÚDE\nRUA DA MATA, Nº 180 | 4480-565 TOUGUINHÓ - VILA DO CONDE | TEL: (+351) 252 097 700";
-    doc.text(info, pageWidth / 2, pageHeight - 45, { align: "center" });
+    doc.text(info, pageWidth / 2, pageHeight - 40, { align: "center" });
   };
 
   // --- GERAÇÃO DAS PÁGINAS DE ATIVIDADES ---
@@ -129,7 +129,7 @@ autoTable(doc, {
     // Estilo padrão para o CORPO da tabela (Dados preenchidos)
     styles: {
       font: "helvetica", 
-      fontSize: 8.5,
+      fontSize: 8.3,
       minCellHeight: 23,
       valign: 'middle',
       lineColor: [0, 0, 0],
