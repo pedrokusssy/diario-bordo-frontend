@@ -89,7 +89,6 @@ function Diario() {
     }
   };
 
-  // Loader Centralizado
   if (loading || buscandoDados) {
     return (
       <Center h="70vh">
@@ -102,10 +101,8 @@ function Diario() {
   }
 
   return (
-    /* Container XL para dar amplitude e py=12 para respiração vertical */
-    <Container maxW="container.md" py={12}>
+    <Container maxW="container.md" py={{ base: 4, md: 12 }} px={{ base: 4, md: 6 }}>
       
-      {/* Botão de Voltar Subtil */}
       <Button 
         leftIcon={<FaArrowLeft />} 
         variant="ghost" 
@@ -119,7 +116,7 @@ function Diario() {
 
       <Box
         bg={bg}
-        p={{ base: 8, md: 12 }} // Mais padding interno
+        p={{ base: 5, sm: 8, md: 12 }} // Padding reduzido no mobile (5) e maior no desktop (12)
         borderRadius="2xl"
         borderWidth="1px"
         borderColor={borderColor}
@@ -127,31 +124,37 @@ function Diario() {
         position="relative"
         overflow="hidden"
       >
-        {/* Barra de destaque superior */}
         <Box position="absolute" top={0} left={0} right={0} h="4px" bg="teal.500" />
 
-        <Flex align="center" mb={10}>
-          <Center w={14} h={14} bg="teal.50" borderRadius="full" mr={5}>
-            <Icon as={id ? FaEdit : FaBook} w={6} h={6} color="teal.500" />
+        <Flex align="center" mb={{ base: 6, md: 10 }} direction={{ base: "row", sm: "row" }}>
+          <Center 
+            w={{ base: 10, md: 14 }} 
+            h={{ base: 10, md: 14 }} 
+            bg="teal.50" 
+            borderRadius="full" 
+            mr={{ base: 3, md: 5 }}
+            flexShrink={0}
+          >
+            <Icon as={id ? FaEdit : FaBook} w={{ base: 5, md: 6 }} h={{ base: 5, md: 6 }} color="teal.500" />
           </Center>
           <Box>
-            <Heading size="lg" color="gray.800" letterSpacing="tight">
+            <Heading size={{ base: "md", md: "lg" }} color="gray.800" letterSpacing="tight">
               {id ? "Editar Registro" : "Novo Lançamento"}
             </Heading>
-            <Text color={secondaryTextColor} fontSize="md">
+            <Text color={secondaryTextColor} fontSize={{ base: "xs", md: "md" }}>
               Formando: <Text as="span" fontWeight="bold" color="teal.600">{usuario?.nome}</Text>
             </Text>
           </Box>
         </Flex>
 
-        <Divider mb={10} />
+        <Divider mb={{ base: 6, md: 10 }} />
 
         <form onSubmit={handleSubmit}>
-          <Stack spacing={8}>
-            {/* Linha Dupla para Atividade e Data */}
-            <Stack direction={{ base: "column", md: "row" }} spacing={6}>
+          <Stack spacing={{ base: 5, md: 8 }}>
+            
+            <Stack direction={{ base: "column", md: "row" }} spacing={{ base: 4, md: 6 }}>
               <FormControl isRequired>
-                <FormLabel fontWeight="bold" color="gray.700" mb={3}>
+                <FormLabel fontWeight="bold" color="gray.700" mb={2} fontSize={{ base: "sm", md: "md" }}>
                   <Icon as={FaTasks} mr={2} color="teal.400" />
                   Atividade Realizada
                 </FormLabel>
@@ -160,7 +163,7 @@ function Diario() {
                   value={actividadeId}
                   onChange={(e) => setActividadeId(e.target.value)}
                   focusBorderColor="teal.400"
-                  size="lg"
+                  size={{ base: "md", md: "lg" }}
                   borderRadius="lg"
                   bg={useColorModeValue("gray.50", "gray.800")}
                 >
@@ -173,7 +176,7 @@ function Diario() {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel fontWeight="bold" color="gray.700" mb={3}>
+                <FormLabel fontWeight="bold" color="gray.700" mb={2} fontSize={{ base: "sm", md: "md" }}>
                   <Icon as={FaCalendarAlt} mr={2} color="teal.400" />
                   Data do Registro
                 </FormLabel>
@@ -182,7 +185,7 @@ function Diario() {
                   value={dataActividade}
                   onChange={(e) => setDataActividade(e.target.value)}
                   focusBorderColor="teal.400"
-                  size="lg"
+                  size={{ base: "md", md: "lg" }}
                   borderRadius="lg"
                   bg={useColorModeValue("gray.50", "gray.800")}
                 />
@@ -190,30 +193,30 @@ function Diario() {
             </Stack>
 
             <FormControl isRequired>
-              <FormLabel fontWeight="bold" color="gray.700" mb={3}>
+              <FormLabel fontWeight="bold" color="gray.700" mb={2} fontSize={{ base: "sm", md: "md" }}>
                 Descrição Detalhada
               </FormLabel>
               <Textarea
-                placeholder="Descreva detalhadamente o que foi realizado, observações e aprendizagens..."
+                placeholder="Descreva detalhadamente o que foi realizado..."
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                size="lg"
+                size={{ base: "md", md: "lg" }}
                 borderRadius="lg"
-                rows={8}
+                rows={{ base: 5, md: 8 }} // Menos linhas no mobile para não ocupar o ecrã todo
                 focusBorderColor="teal.400"
                 bg={useColorModeValue("gray.50", "gray.800")}
                 lineHeight="tall"
               />
             </FormControl>
 
-            <Box pt={6}>
+            <Box pt={4}>
               <Button
                 type="submit"
                 colorScheme="teal"
-                size="xl" // Botão maior e mais impactante
+                size={{ base: "lg", md: "xl" }}
                 w="full"
-                h="60px"
-                fontSize="lg"
+                h={{ base: "50px", md: "60px" }} // Altura adaptável
+                fontSize={{ base: "md", md: "lg" }}
                 leftIcon={id ? <FaEdit /> : <FaSave />}
                 shadow="xl"
                 borderRadius="xl"
@@ -228,8 +231,8 @@ function Diario() {
         </form>
       </Box>
 
-      <Text mt={8} textAlign="center" fontSize="sm" color="gray.400">
-        Os seus dados são salvos de forma segura na plataforma. 1
+      <Text mt={6} textAlign="center" fontSize="xs" color="gray.400">
+        Os seus dados são salvos de forma segura na plataforma.
       </Text>
     </Container>
   );
