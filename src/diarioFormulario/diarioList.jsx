@@ -30,7 +30,7 @@ function DiarioList() {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
   const navigate = useNavigate();
-
+  
   const cardBg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
 
@@ -47,13 +47,12 @@ function DiarioList() {
   };
 
   const handleExportPDF = () => {
-    // CORREÇÃO: Pegamos o nome do formando do localStorage ou definimos um padrão
     const nomeFormando = localStorage.getItem("userName") || "Edevânio Almeida";
 
     const dadosId = {
       especialidade: "Ortopedia",
       tutor: "Dr. José Tulha",
-      formando: nomeFormando, // Agora a variável está definida
+      formando: nomeFormando,
       dataInicio: "09-02-2026",
       dataFim: "30-04-2026",
       hospitalOrigem: "Hospital Militar",
@@ -62,7 +61,6 @@ function DiarioList() {
       unidade: "Bloco Operatório"
     };
 
-    // Formata os diários para o formato que a função PDF espera
     const atividadesFormatadas = diarios.map(d => ({
       data: new Date(d.dataActividade).toLocaleDateString('pt-PT'),
       atividade: d.actividade.actividade,
@@ -83,44 +81,58 @@ function DiarioList() {
   };
 
   return (
-    <Box
-      h="calc(100vh - 64px)"
-      w="100%"
-      display="flex"
+    <Box 
+      h="calc(100vh - 64px)" 
+      w="100%" 
+      display="flex" 
       flexDirection="column"
-      overflow="hidden" // Impede scroll na página toda
+      overflow="hidden"
       bg="gray.50"
     >
-      <Container
-        maxW="container.xl"
-        h="full"
-        display="flex"
-        flexDirection="column"
-        pt={10}
+      <Container 
+        maxW="100%" // Mudado de container.xl para 100% para fluidez total
+        px={[4, 6, 10]} // Padding lateral responsivo
+        h="full" 
+        display="flex" 
+        flexDirection="column" 
+        pt={[4, 6, 10]} // Topo menor em ecrãs pequenos
         pb={6}
       >
-        {/* HEADER */}
-        <Flex justify="space-between" align="flex-end" mb={8} flexShrink={0}>
+        {/* HEADER RESPONSIVO */}
+        <Flex 
+          justify="space-between" 
+          align={["start", "start", "flex-end"]} // Alinhamento muda conforme o ecrã
+          direction={["column", "column", "row"]} // Empilha no telemóvel/portátil pequeno
+          gap={[4, 4, 0]}
+          mb={8} 
+          flexShrink={0}
+        >
           <VStack align="start" spacing={1}>
-            <Heading size="xl" color="teal.700" letterSpacing="tight">Diário de Bordo</Heading>
-            <Text fontSize="md" color="gray.500">Registos de formação e atividades diárias</Text>
+            <Heading size={["lg", "xl"]} color="teal.700" letterSpacing="tight">
+              Diário de Bordo
+            </Heading>
+            <Text fontSize={["sm", "md"]} color="gray.500">
+              Registos de formação e atividades diárias
+            </Text>
           </VStack>
-
-          <HStack spacing={4}>
+          
+          <HStack spacing={4} w={["full", "full", "auto"]}>
             <Button
               leftIcon={<FaFilePdf />}
               colorScheme="orange"
-              size="lg"
+              size={["md", "lg"]}
+              flex={["1", "1", "initial"]}
               onClick={handleExportPDF}
               isDisabled={diarios.length === 0}
             >
               Exportar PDF
             </Button>
 
-            <Button
-              leftIcon={<FaPlus />}
-              colorScheme="teal"
-              size="lg"
+            <Button 
+              leftIcon={<FaPlus />} 
+              colorScheme="teal" 
+              size={["md", "lg"]}
+              flex={["1", "1", "initial"]}
               onClick={() => navigate("/novoDiario")}
             >
               Novo Registro
@@ -128,64 +140,90 @@ function DiarioList() {
           </HStack>
         </Flex>
 
-        {/* ÁREA DA TABELA COM SCROLL INTERNO */}
-        <Box
-          flex="1"
-          bg={cardBg}
-          borderRadius="2xl"
-          borderWidth="1px"
+        {/* TABELA COM CORREÇÕES DE RESPONSIVIDADE E QUEBRA DE TEXTO */}
+        <Box 
+          flex="1" 
+          bg={cardBg} 
+          borderRadius="2xl" 
+          borderWidth="1px" 
           borderColor={borderColor}
           shadow="2xl"
           display="flex"
           flexDirection="column"
           overflow="hidden"
         >
-          <TableContainer
-            overflowY="auto" // Scroll apenas vertical
+          <TableContainer 
+            overflowY="auto" 
             flex="1"
             sx={{
               "&::-webkit-scrollbar": { width: "8px" },
               "&::-webkit-scrollbar-thumb": { background: "teal.500", borderRadius: "10px" },
             }}
           >
-            <Table variant="simple" size="lg">
+            {/* O layout="fixed" obriga a tabela a respeitar as larguras das colunas */}
+            <Table variant="simple" size={["sm", "md", "lg"]} layout="fixed">
               <Thead position="sticky" top={0} bg={cardBg} zIndex={10} shadow="sm">
                 <Tr>
-                  <Th py={5} color="teal.700">Data</Th>
-                  <Th color="teal.700">Atividade</Th>
+                  {/* Larguras em Array: [mobile, tablet/laptop, monitor grande] */}
+                  <Th w={["100px", "140px", "180px"]} color="teal.700">Data</Th>
+                  <Th w={["120px", "180px", "220px"]} color="teal.700">Atividade</Th>
                   <Th color="teal.700">Descrição Detalhada</Th>
-                  <Th textAlign="center" color="teal.700">Ações</Th>
+                  <Th w={["80px", "100px", "120px"]} textAlign="center" color="teal.700">Ações</Th>
                 </Tr>
               </Thead>
-
+              
               <Tbody>
                 {diarios.map((diario) => (
                   <Tr key={diario.id} _hover={{ bg: "teal.50" }}>
-                    <Td fontWeight="bold" w="180px">
+                    <Td fontWeight="bold" fontSize={["xs", "sm", "md"]}>
                       {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
                     </Td>
-                    <Td w="220px">
-                      <Badge colorScheme="teal" p={2} borderRadius="md" variant="subtle">
+                    
+                    <Td>
+                      <Badge 
+                        colorScheme="teal" 
+                        p={2} 
+                        borderRadius="md" 
+                        variant="subtle" 
+                        fontSize={["xs", "xs", "sm"]}
+                        w="full"
+                        textAlign="center"
+                        isTruncated // Corta com "..." se a atividade for muito longa
+                      >
                         {diario.actividade.actividade}
                       </Badge>
                     </Td>
-                    {/* Coluna da Descrição Detalhada */}
-                    <Td maxW="400px"> {/* Definimos uma largura máxima para a célula */}
-                      <Text
-                        fontSize="sm"
-                        color="gray.600"
-                        lineHeight="tall"
-                        whiteSpace="normal"    // Garante que o texto quebre a linha
-                        wordBreak="break-word" // Quebra palavras muito longas (como links ou textos sem espaço)
-                        noOfLines={3}          // Podes aumentar de 2 para 3 ou remover se quiseres ver o texto todo
+                    
+                    {/* SOLUÇÃO PARA O BUG DO TEXTO HORIZONTAL */}
+                    <Td>
+                      <Text 
+                        fontSize={["xs", "sm"]} 
+                        color="gray.600" 
+                        lineHeight="tall" 
+                        whiteSpace="normal"    // Força o texto a quebrar a linha
+                        wordBreak="break-word" // Quebra palavras gigantes
+                        noOfLines={[2, 3, 4]}  // Limita linhas para não deformar a tabela
                       >
                         {diario.descricao}
                       </Text>
                     </Td>
-                    <Td w="120px">
-                      <HStack justify="center" spacing={1}>
-                        <IconButton icon={<FaEdit />} variant="ghost" colorScheme="blue" size="sm" onClick={() => navigate(`/editarDiario/${diario.id}`)} />
-                        <IconButton icon={<FaTrash />} variant="ghost" colorScheme="red" size="sm" onClick={() => handleDelete(diario.id)} />
+
+                    <Td>
+                      <HStack justify="center" spacing={[1, 2]}>
+                        <IconButton 
+                          icon={<FaEdit />} 
+                          variant="ghost" 
+                          colorScheme="blue" 
+                          size="sm" 
+                          onClick={() => navigate(`/editarDiario/${diario.id}`)} 
+                        />
+                        <IconButton 
+                          icon={<FaTrash />} 
+                          variant="ghost" 
+                          colorScheme="red" 
+                          size="sm" 
+                          onClick={() => handleDelete(diario.id)} 
+                        />
                       </HStack>
                     </Td>
                   </Tr>
@@ -197,7 +235,6 @@ function DiarioList() {
       </Container>
     </Box>
   );
-  1
 }
 
 export default DiarioList;
