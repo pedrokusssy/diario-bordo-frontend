@@ -1,64 +1,135 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Mudança aqui: importamos o autoTable
-import { ENSINAR_CAMOES_LOGO } from '../assets/logos-pdfs'; 
+import autoTable from 'jspdf-autotable';
+import { ENSINAR_CAMOES_LOGO, ENSINAR_SAUDE_LOGO } from '../assets/logos-pdfs';
 
 export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // --- 1. CABEÇALHO ---
-  doc.addImage(ENSINAR_CAMOES_LOGO, 'PNG', 14, 10, 40, 18);
+  const linhasPorPagina = 5;
+  const totalPaginas = Math.ceil(listaAtividades.length / linhasPorPagina) || 1;
 
-  // --- 2. TÍTULO E TABELA DE IDENTIFICAÇÃO ---
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("DIÁRIO DE BORDO – FORMAÇÃO ESPECIALIZADA", pageWidth / 2, 35, { align: "center" });
+  const desenharEstruturaFixa = (numeroPagina) => {
+    // 1. O NIF NA MARGEM ESQUERDA (Vertical)
+    doc.setFontSize(6);
+    doc.setTextColor(150);
+    // Texto vertical conforme a foto 
+    doc.text("N.I.F. 515 675 836", 10, 235, { angle: 90 });
 
-  // USAMOS autoTable(doc, {...}) em vez de doc.autoTable({...})
-  autoTable(doc, {
-    startY: 40,
-    theme: 'grid',
-    styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1 },
-    headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0] },
-    body: [
-      [{ content: 'ESPECIALIDADE', fontStyle: 'bold' }, { content: dadosFormacao.especialidade, colSpan: 3 }],
-      [{ content: 'TUTOR(A)', fontStyle: 'bold' }, { content: dadosFormacao.tutor, colSpan: 3 }],
-      [
-        { content: 'FORMANDO(A)', fontStyle: 'bold' }, { content: dadosFormacao.formando },
-        { content: 'Hospital de Origem:', fontStyle: 'bold' }, { content: dadosFormacao.hospitalOrigem }
+    // 2. LOGOTIPO SUPERIOR [cite: 2, 16]
+    doc.addImage(ENSINAR_SAUDE_LOGO, 'PNG', 3, 10, 60, 50);
+
+    // 3. TÍTULO CENTRALIZADO [cite: 4, 20]
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("DIÁRIO DE BORDO – FORMAÇÃO ESPECIALIZADA", pageWidth / 2, 62, { align: "center" });
+
+    // 4. TABELA DE IDENTIFICAÇÃO (Mais compacta para não ser "grande") [cite: 5, 17]
+
+    autoTable(doc, {
+      startY: 68,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.3 },
+      body: [
+        [{ content: 'ESPECIALIDADE', fontStyle: 'bold' }, { content: dadosFormacao.especialidade || '', colSpan: 2 }],
+        [{ content: 'TUTOR(A)', fontStyle: 'bold' }, { content: dadosFormacao.tutor || '', colSpan: 2 }],
+        [
+          { content: 'FORMANDO(A)', fontStyle: 'bold' },
+          { content: dadosFormacao.formando || '' },
+          // Uma única célula para o Hospital, eliminando a divisória interna
+          { content: `Hospital de Origem: ${dadosFormacao.hospitalOrigem || ''}` }
+        ],
+        [
+          { content: 'PERÍODO', fontStyle: 'bold' },
+          { content: dadosFormacao.periodo || '' },
+          // Uma única célula para o Horário
+          { content: `Horário: ${dadosFormacao.horario || ''}` }
+        ],
+        [{ content: 'LOCAL FORMAÇÃO', fontStyle: 'bold' }, { content: dadosFormacao.local || '', colSpan: 2 }],
+        [{ content: 'UNIDADE', fontStyle: 'bold' }, { content: dadosFormacao.unidade || '', colSpan: 2 }],
       ],
-      [
-        { content: 'PERÍODO', fontStyle: 'bold' }, { content: dadosFormacao.periodo },
-        { content: 'Horário:', fontStyle: 'bold' }, { content: dadosFormacao.horario }
-      ],
-      [{ content: 'LOCAL FORMAÇÃO', fontStyle: 'bold' }, { content: dadosFormacao.local, colSpan: 3 }],
-    ],
-    columnStyles: { 0: { cellWidth: 30 }, 2: { cellWidth: 35 } }
-  });
+      // Larguras calculadas para não "quebrar" o texto
+      columnStyles: {
+        0: { cellWidth: 30 }, // Reduzimos de 35 para 30
+        1: { cellWidth: 55 }, // Reduzimos de 65 para 55
+        2: { cellWidth: 75 }  // Reduzimos de 80 para 75 (limite para não quebrar linha)
+      },
+      // Aumentamos as margens de 15 para 25 (Total 50 de espaço em branco)
+      margin: { left: 25, right: 25 }
+    });
 
-  // --- 3. TABELA DE ATIVIDADES ---
-  // A variável finalY continua a ser acessível através do doc.lastAutoTable.finalY
-  const currentY = doc.lastAutoTable.finalY || 40;
 
-  autoTable(doc, {
-    startY: currentY + 5,
-    head: [['DATA', 'ATIVIDADE', 'DESCRIÇÃO/OBSERVAÇÃO DA ATIVIDADE', 'ASSINATURA TUTOR(A)']],
-    body: listaAtividades.map(act => [act.data, act.atividade, act.descricao, '']),
-    theme: 'grid',
-    styles: { fontSize: 8, minCellHeight: 12 },
-    headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], halign: 'center' },
-    columnStyles: { 0: { cellWidth: 22 }, 3: { cellWidth: 28 } }
-  });
+    // 5. RODAPÉ [cite: 9, 12, 31]
+    const footerY = pageHeight - 20;
 
-  // --- 4. RODAPÉ ---
-  const footerY = pageHeight - 25;
-  doc.addImage(ENSINAR_CAMOES_LOGO, 'PNG', 14, footerY, 30, 12);
-  
-  doc.setFontSize(7);
-  doc.setTextColor(100);
-  const info = "ENSINAR SAÚDE NORTE - ASSOCIAÇÃO PARA O ENSINO, INVESTIGAÇÃO E DESENVOLVIMENTO DOS PROFISSIONAIS DE SAÚDE";
-  doc.text(info, pageWidth / 2, pageHeight - 10, { align: "center" });
+    // Folha nº [cite: 10, 28]
+    doc.setFontSize(9);
+    doc.text(`Folha nº ${numeroPagina}/${totalPaginas}`, pageWidth - 40, pageHeight - 56, { align: 'right' });
 
-  doc.save("Diario_Bordo_Oficial.pdf");
-};
+    // Logos de Rodapé [cite: 8, 12, 46]
+    doc.addImage(ENSINAR_SAUDE_LOGO, 'PNG', 5, footerY - 25, 30, 25);
+    doc.addImage(ENSINAR_CAMOES_LOGO, 'PNG', pageWidth - 47, footerY - 20, 40, 20);
+
+    // Texto de Endereço [cite: 32, 51]
+    doc.setFontSize(5);
+    const info = "ENSINAR SAÚDE NORTE – ASSOCIAÇÃO PARA O ENSINO, INVESTIGAÇÃO E DESENVOLVIMENTO DOS PROFISSIONAIS DE SAÚDE\nRUA DA MATA, Nº 180 | 4480-565 TOUGUINHÓ - VILA DO CONDE | TEL: (+351) 252 097 700";
+    doc.text(info, pageWidth / 2, pageHeight - 45, { align: "center" });
+  };
+
+  for (let i = 0; i < totalPaginas; i++) {
+    if (i > 0) doc.addPage();
+    desenharEstruturaFixa(i + 1);
+
+    const inicio = i * linhasPorPagina;
+    const atividadesDaPagina = listaAtividades.slice(inicio, inicio + linhasPorPagina);
+
+    while (atividadesDaPagina.length < linhasPorPagina) {
+      atividadesDaPagina.push({ data: '', atividade: '', descricao: '' });
+    }
+    // 6. TABELA DE ATIVIDADES REDUZIDA
+    // 6. TABELA DE ATIVIDADES (Alinhada com a Identificação)
+    autoTable(doc, {
+      startY: 108,
+      head: [['DATA', 'ATIVIDADE', 'DESCRIÇÃO/ OBSERVAÇÃO DA ATIVIDADE', 'ASSINATURA TUTOR(A)']],
+      body: atividadesDaPagina.map(act => [act.data, act.atividade, act.descricao, '']),
+      theme: 'grid',
+      styles: {
+        fontSize: 7,
+        // --- REDUZ AQUI ---
+        minCellHeight: 23, // Muda de 30 para 20 (ou 15 para ficar bem fininho)
+        valign: 'middle',   // Mudar para 'middle' ajuda o texto a não ficar colado ao topo
+        lineColor: [0, 0, 0],
+        lineWidth: 0.1
+      },
+      // HeadStyles: aplicam-se APENAS à linha do topo
+      headStyles: {
+        fillColor: [210, 210, 210],
+        textColor: [0, 0, 0],
+        halign: 'center',
+        fontStyle: 'bold',
+        // --- O TRUQUE PARA REDUZIR O HEADER ESTÁ AQUI ---
+        cellPadding: 1.5,      // Diminui o espaço interno (o padrão é 5, por isso é que fica gordo)
+        minCellHeight: 0       // Sobrescreve os 30 do estilo geral, permitindo que a linha encolha
+      },
+      // ... as tuas columnStyles e margin
+
+
+      // DISTRIBUIÇÃO PARA TOTALIZAR 160 UNIDADES:
+      columnStyles: {
+        0: { cellWidth: 25 , halign:"center"}, // Data
+        1: { cellWidth: 35 , halign:"center"}, // Atividade
+        2: { cellWidth: 75 }, // Descrição (Igualamos à largura da coluna do Hospital para alinhar)
+        3: { cellWidth: 25 }  // Assinatura
+      },
+
+      // MESMAS MARGENS DA TABELA DE CIMA:
+      margin: { left: 25, right: 25 }
+    });
+
+
+  }
+
+  doc.save("Diario_Bordo_Final.pdf");
+}
+
