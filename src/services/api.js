@@ -25,6 +25,13 @@ api.interceptors.request.use(async (config) => {
   return Promise.reject(error);
 });
 
+//User Formando Data
+
+export function getFormandoById(id) {
+  return api.get(`/formando/${id}`);
+}
+
+
 // GET
 export function getDiarios() {
   return api.get("/diario");
