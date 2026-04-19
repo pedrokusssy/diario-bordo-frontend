@@ -2,7 +2,6 @@ import {
   Box,
   Heading,
   Text,
-  Stack,
   Badge,
   Flex,
   Icon,
@@ -11,113 +10,182 @@ import {
   useColorModeValue,
   Avatar,
   Tooltip,
-  HStack,
   Divider,
-  Center
+  Center,
+  Skeleton,
+  VStack,
+  HStack
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { FaChalkboardTeacher, FaCalendarAlt, FaInfoCircle } from "react-icons/fa";
-import { getAllFormacao } from "../services/api";
+import { FaCalendarAlt, FaInfoCircle, FaGraduationCap, FaChevronRight } from "react-icons/fa";
+import { getAllFormacaoByFormandoId } from "../services/api";
 
 function FormacaoList() {
   const [formacoes, setFormacoes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const cardBg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
+  const tutorBg = useColorModeValue("gray.50", "gray.800");
 
   useEffect(() => {
-    getAllFormacao()
-      .then((res) => setFormacoes(res.data))
-      .catch((err) => console.error(err));
+    getAllFormacaoByFormandoId(localStorage.getItem("pessoaId"))
+      .then((res) => {
+        setFormacoes(res.data);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setIsLoading(false);
+      });
   }, []);
 
+  // --- FUNÇÃO SALVA-VIDAS ---
+  // Garante que o Avatar e o Text recebem sempre uma STRING (texto) e nunca um Objeto.
+  const getTutorName = (tutor) => {
+    if (!tutor) return "Não atribuído";
+    if (typeof tutor === "string") return tutor;
+    if (tutor.nome) return tutor.nome; // Se for o objeto {id, nome, telefone...} extrai o nome
+    return "Não atribuído";
+  };
+
   return (
-    // Ajustado o padding lateral para ser menor no mobile (base: 4) e maior no desktop (md: 8)
-    <Box p={{ base: 4, md: 8 }}>
+    <Box p={{ base: 4, md: 8 }} maxW="1600px" mx="auto">
       
-      {/* Cabeçalho responsivo: empilha no mobile e fica em linha no desktop */}
+      {/* HEADER */}
       <Flex 
         direction={{ base: "column", sm: "row" }} 
         justify="space-between" 
         align={{ base: "start", sm: "center" }} 
         gap={4}
-        mb={6}
+        mb={10}
       >
-        <Heading size="lg" color="teal.600">Minhas Formações</Heading>
-        <Button colorScheme="teal" size="md" w={{ base: "full", sm: "auto" }}>
+        <VStack align="start" spacing={0}>
+          <HStack color="teal.600">
+            <Icon as={FaGraduationCap} boxSize={6} />
+            <Heading size="lg" letterSpacing="tight">Minhas Formações</Heading>
+          </HStack>
+          <Text color="gray.500" fontSize="sm">Acompanhe o progresso das suas especializações</Text>
+        </VStack>
+
+        <Button 
+          colorScheme="teal" 
+          size="lg" 
+          boxShadow="md"
+          w={{ base: "full", sm: "auto" }}
+          _hover={{ transform: "translateY(-2px)", boxShadow: "lg" }}
+        >
           Solicitar Formação
         </Button>
       </Flex>
 
-      {/* Grid inteligente: 1 coluna no mobile, 2 em tablets, 3 em telas grandes */}
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={{ base: 4, md: 6 }}>
-        {formacoes.map((f) => (
-          <Box
-            key={f.id}
-            p={{ base: 4, md: 5 }} // Padding menor no mobile
-            shadow="sm"
-            borderWidth="1px"
-            borderColor={borderColor}
-            borderRadius="xl" // Bordas mais arredondadas ficam melhores no mobile
-            bg={cardBg}
-            transition="all 0.2s"
-            _hover={{ shadow: "md", borderColor: "teal.400" }}
-          >
-            <Flex justify="space-between" align="start" mb={3}>
-              <Badge colorScheme="purple" variant="subtle" px={2} borderRadius="full">
-                {f.periodo?.dataInicio|| "Sem Período"} {f.periodo?.dataFim|| "Sem Período"}
-              </Badge>
-              <Tooltip label={`Criado em: ${new Date(f.createdAt).toLocaleDateString()}`}>
-                <Box>
-                   <Icon as={FaInfoCircle} color="gray.400" />
-                </Box>
-              </Tooltip>
-            </Flex>
+      {/* GRID COM SKELETON LOADING */}
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={{ base: 6, md: 8 }}>
+        {isLoading ? (
+          [1, 2, 3].map((i) => <Skeleton key={i} h="300px" borderRadius="xl" />)
+        ) : formacoes.length > 0 ? (
+          formacoes.map((f) => {
+            
+            // Extraímos o nome limpo e seguro antes de construir o Card
+            const nomeTutor = getTutorName(f.tutor);
 
-            <Heading size="md" mb={2} noOfLines={1} fontSize={{ base: "lg", md: "xl" }}>
-              {f.titulo}
-            </Heading>
+            return (
+              <Box
+                key={f.id}
+                p={{ base: 5, md: 6 }}
+                shadow="sm"
+                borderWidth="1px"
+                borderColor={borderColor}
+                borderRadius="2xl"
+                bg={cardBg}
+                transition="all 0.3s"
+                position="relative"
+                overflow="hidden"
+                _hover={{ shadow: "xl", borderColor: "teal.400", transform: "translateY(-4px)" }}
+              >
+                {/* Badge de Período Superior */}
+                <Flex justify="space-between" align="center" mb={4}>
+                  <Badge colorScheme="purple" variant="subtle" px={3} py={1} borderRadius="lg" fontSize="xs">
+                    <Icon as={FaCalendarAlt} mr={1} />
+                    {new Date(f.periodo?.dataInicio).toLocaleDateString('pt-PT') || "Início"} — {new Date(f.periodo?.dataFim).toLocaleDateString('pt-PT') || "Fim"}
+                  </Badge>
+                  <Tooltip label={`Info do Registo`}>
+                    <Box>
+                      <Icon as={FaInfoCircle} color="gray.300" cursor="help" />
+                    </Box>
+                  </Tooltip>
+                </Flex>
 
-            <Text 
-              fontSize="sm" 
-              color="gray.600" 
-              noOfLines={3} 
-              mb={4} 
-              minH={{ base: "auto", md: "60px" }} // Remove altura fixa no mobile para economizar espaço
-            >
-              {f.descricao || "Nenhuma descrição fornecida."}
-            </Text>
+                {/* Título com Quebra de Segurança */}
+                <Heading 
+                  size="md" 
+                  mb={3} 
+                  lineHeight="shorter"
+                  wordBreak="break-word" 
+                  noOfLines={2}
+                >
+                  {f.titulo || "Formação em Curso"}
+                </Heading>
 
-            <Divider mb={4} />
+                <Text 
+                  fontSize="sm" 
+                  color="gray.600" 
+                  noOfLines={3} 
+                  mb={6} 
+                  wordBreak="break-word"
+                  minH="60px"
+                >
+                  {f.descricao || "Sem descrição"}
+                </Text>
 
-            <Stack spacing={4}>
-              {/* Seção do Tutor */}
-              <Flex align="center" gap={3}>
-                <Avatar size="sm" name={f.tutor} />
-                <Box>
-                  <Text fontSize="xs" fontWeight="bold" color="gray.400" lineHeight="1">
-                    TUTOR
-                  </Text>
-                  <Text fontSize="sm" fontWeight="medium">{f.tutor || "Não atribuído"}</Text>
-                </Box>
-              </Flex>
+                <Divider mb={5} />
 
-              {/* Seção de Data */}
-              <Flex align="center" gap={3}>
-                <Center w="32px" h="32px" bg="teal.50" borderRadius="full">
-                  <Icon as={FaCalendarAlt} color="teal.500" />
-                </Center>
-                <Box>
-                  <Text fontSize="xs" fontWeight="bold" color="gray.400" lineHeight="1">
-                    ÚLTIMA ATUALIZAÇÃO
-                  </Text>
-                  <Text fontSize="sm">
-                    {f.updatedAt ? new Date(f.updatedAt).toLocaleDateString() : "Nunca"}
-                  </Text>
-                </Box>
-              </Flex>
-            </Stack>
-          </Box>
-        ))}
+                {/* RODAPÉ DO CARD: Tutor e Data */}
+                <VStack align="stretch" spacing={4}>
+                  <Flex 
+                    align="center" 
+                    gap={3} 
+                    bg={tutorBg} 
+                    p={3} 
+                    borderRadius="xl"
+                  >
+                    {/* AVATAR SEGURO: Recebe sempre a string processada */}
+                    <Avatar size="sm" name={nomeTutor} bg="teal.500" />
+                    
+                    <Box overflow="hidden">
+                      <Text fontSize="10px" fontWeight="bold" color="gray.400" textTransform="uppercase">
+                        Tutor Responsável
+                      </Text>
+                      
+                      {/* TEXTO SEGURO: Renderiza sempre a string processada */}
+                      <Text fontSize="sm" fontWeight="bold" isTruncated title={nomeTutor}>
+                        {nomeTutor}
+                      </Text>
+                    </Box>
+                  </Flex>
+
+                  <Button 
+                      variant="link" 
+                      colorScheme="teal" 
+                      size="sm" 
+                      rightIcon={<FaChevronRight />}
+                      justifyContent="flex-end"
+                  >
+                    Ver Detalhes
+                  </Button>
+                </VStack>
+              </Box>
+            );
+          })
+        ) : (
+          // Mensagem caso não existam dados
+          <Center gridColumn="1 / -1" py={20}>
+            <VStack>
+              <Icon as={FaGraduationCap} boxSize={12} color="gray.200" />
+              <Text color="gray.500">Nenhuma formação encontrada.</Text>
+            </VStack>
+          </Center>
+        )}
       </SimpleGrid>
     </Box>
   );
