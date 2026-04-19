@@ -169,6 +169,15 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
       }
     });
   });
+  
+  // doc.save("Diario_Bordo_Final.pdf");
 
-  doc.save("Diario_Bordo_Final.pdf");
+  // Gera o PDF como um "Blob" (um ficheiro em memória)
+  const pdfBlob = doc.output('blob');
+  
+  // Cria um URL temporário para esse ficheiro
+  const blobUrl = URL.createObjectURL(pdfBlob);
+  
+  // Abre o PDF num novo separador do browser
+  window.open(blobUrl, '_blank');
 };
