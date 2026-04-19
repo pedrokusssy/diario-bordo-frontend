@@ -72,5 +72,9 @@ export function getAllFormacao(){
   return api.get("/formacao");
 }
 
+export function getAllFormacaoByFormandoId(id){
+  return api.get(`/formacao/${id}`);
+}
+
 console.log("Axios configurado para:", baseURL);
 export default api;
