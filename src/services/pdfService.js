@@ -28,7 +28,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
   let slotsUsados = 0;
 
   atividadesOrdenadas.forEach((act) => {
-    const peso = (act.descricao && act.descricao.length > 270) ? 2 : 1;
+    const peso = (act.descricao && act.descricao.length > 280) ? 2 : 1;
 
     if (slotsUsados + peso > 5) {
       while (slotsUsados < 5) {
@@ -84,7 +84,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
         ],
         [
           { content: 'PERÍODO' },
-          { content: dadosFormacao.periodo || '' },
+          { content: `${dadosFormacao.periodo.dataInicio} - ${dadosFormacao.periodo.dataFim}` || '' },
           { content: `Horário: ${dadosFormacao.horario || ''}` }
         ],
         [{ content: 'LOCAL FORMAÇÃO' }, { content: dadosFormacao.local || '', colSpan: 2 }],
