@@ -22,16 +22,13 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEdit, FaTrash, FaPlus, FaFilePdf } from "react-icons/fa";
-// Apagámos o 'getDiarioByFormandoId' daqui, pois agora vem do Contexto
 import { getAllFormacaoByFormandoId, getFormandoById, deleteDiario } from "../services/api";
 import { gerarDiarioBordoPDF } from "../services/pdfService";
 import { useAppGlobal } from "../contexts/DiarioContext"; 
 
 function DiarioList() {
-  // 1. Puxamos os diários e a função de atualizar diretamente do Contexto Global!
   const { diarios, refreshAllData } = useAppGlobal();
 
-  // Mantemos apenas os estados locais das formações e do formando
   const [formacoes, setFormacoes] = useState([]);
   const [formando, setFormando] = useState([]);
   const [loadingLocal, setLoadingLocal] = useState(true);
@@ -42,12 +39,16 @@ function DiarioList() {
   const cardBg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
 
+  // --- A MÁGICA DA ORDENAÇÃO ACONTECE AQUI ---
+  // Criamos uma cópia do array e ordenamos (b - a = do mais recente para o mais antigo)
+  const diariosOrdenados = [...(diarios || [])].sort((a, b) => {
+    return new Date(b.dataActividade) - new Date(a.dataActividade);
+  });
+
   const carregarFormacoes = () => {
     setLoadingLocal(true);
     getAllFormacaoByFormandoId(localStorage.getItem("pessoaId"))
-      .then((response) => {
-        setFormacoes(response.data);
-      })
+      .then((response) => setFormacoes(response.data))
       .catch(console.error)
       .finally(() => setLoadingLocal(false));
   };
@@ -55,36 +56,38 @@ function DiarioList() {
   const carregarFormando = () => {
     setLoadingLocal(true);
     getFormandoById(localStorage.getItem("pessoaId"))
-      .then((response) => {
-        setFormando(response.data);
-      })
+      .then((response) => setFormando(response.data))
       .catch(console.error)
       .finally(() => setLoadingLocal(false));
   };
 
-  // Juntámos os dois useEffects num só para o código ficar mais limpo
   useEffect(() => {
     carregarFormacoes();
     carregarFormando();
   }, []);
 
-  const handleExportPDF = () => {
-    console.log(formacoes);
+ const handleExportPDF = () => {
     const dadosId = {
-      especialidade: formacoes[0].titulo,
-      tutor: formacoes[0].tutor.nome,
+      especialidade: formacoes[0]?.titulo,
+      tutor: formacoes[0]?.tutor?.nome,
       formando: formando.nome,
       periodo: {
-        dataInicio: new Date(formacoes[0].periodo.dataInicio).toLocaleDateString('pt-PT'),
-        dataFim: new Date(formacoes[0].periodo.dataFim).toLocaleDateString('pt-PT'),
+        dataInicio: formacoes[0]?.periodo?.dataInicio ? new Date(formacoes[0].periodo.dataInicio).toLocaleDateString('pt-PT') : '',
+        dataFim: formacoes[0]?.periodo?.dataFim ? new Date(formacoes[0].periodo.dataFim).toLocaleDateString('pt-PT') : '',
       },
       hospitalOrigem: formando.hospitalOrigem,
-      horario: formacoes[0].periodo.horaInicio + " - " + formacoes[0].periodo.horaFim,
-      local: formacoes[0].localFormacao,
-      unidade: formacoes[0].unidade || ""
+      horario: formacoes[0]?.periodo ? `${formacoes[0].periodo.horaInicio} - ${formacoes[0].periodo.horaFim}` : '',
+      local: formacoes[0]?.localFormacao,
+      unidade: formacoes[0]?.unidade || ""
     };
 
-    const atividadesFormatadas = diarios.map(d => ({
+    // --- NOVA ORDENAÇÃO EXCLUSIVA PARA O PDF ---
+    // a - b = ordena do mais antigo para o mais recente
+    const diariosParaPDF = [...(diarios || [])].sort((a, b) => {
+      return new Date(a.dataActividade) - new Date(b.dataActividade);
+    });
+
+    const atividadesFormatadas = diariosParaPDF.map(d => ({
       data: new Date(d.dataActividade).toLocaleDateString('pt-PT'),
       atividade: d.actividade.actividade,
       descricao: d.descricao
@@ -92,12 +95,11 @@ function DiarioList() {
 
     gerarDiarioBordoPDF(dadosId, atividadesFormatadas);
   };
-
+  
   const handleDelete = async (id) => {
     if (window.confirm("Apagar este diário?")) {
       try {
         await deleteDiario(id);
-        // 2. Aqui a magia acontece: pedimos ao contexto para se atualizar!
         refreshAllData();
         toast({ title: "Removido", status: "success" });
       } catch (err) { 
@@ -124,7 +126,6 @@ function DiarioList() {
         pt={[4, 6, 10]}
         pb={6}
       >
-        {/* HEADER RESPONSIVO */}
         <Flex
           justify="space-between"
           align={["start", "start", "flex-end"]}
@@ -149,7 +150,7 @@ function DiarioList() {
               size={["md", "lg"]}
               flex={["1", "1", "initial"]}
               onClick={handleExportPDF}
-              isDisabled={!diarios || diarios.length === 0} // Previne erro caso diários ainda venham vazios
+              isDisabled={diariosOrdenados.length === 0}
             >
               Exportar PDF
             </Button>
@@ -166,7 +167,6 @@ function DiarioList() {
           </HStack>
         </Flex>
 
-        {/* TABELA COM CORREÇÕES DE RESPONSIVIDADE E QUEBRA DE TEXTO */}
         <Box
           flex="1"
           bg={cardBg}
@@ -197,7 +197,8 @@ function DiarioList() {
               </Thead>
 
               <Tbody>
-                {diarios && diarios.map((diario) => (
+                {/* Usamos a lista ORDENADA para desenhar as linhas da tabela */}
+                {diariosOrdenados.map((diario) => (
                   <Tr key={diario.id} _hover={{ bg: "teal.50" }}>
                     <Td fontWeight="bold" fontSize={["xs", "sm", "md"]}>
                       {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
