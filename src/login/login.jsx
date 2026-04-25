@@ -18,11 +18,14 @@ import { useState } from "react";
 import { FaLock, FaUser, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useAppGlobal } from "../contexts/DiarioContext"; 
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const {loginSucesso} = useAppGlobal();
 
   const navigate = useNavigate();
   const toast = useToast();
@@ -56,7 +59,7 @@ function Login() {
       });
 
       // 2. Redireciona o utilizador para a Dashboard ou Lista de Diários
-      navigate("/diarios");
+      window.location.href = "/diarios";
 
       // 3. (Opcional mas recomendado) Força o Contexto a carregar os dados
       // refreshAllData(); se estiveres a usar aquele contexto que criámos
