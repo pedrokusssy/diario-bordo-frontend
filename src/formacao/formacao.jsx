@@ -49,6 +49,7 @@ function FormacaoList() {
     return "Não atribuído";
   };
 
+  console.log(formacoes[0]);
   return (
     <Box p={{ base: 4, md: 8 }} maxW="1600px" mx="auto">
       
@@ -135,7 +136,7 @@ function FormacaoList() {
                   wordBreak="break-word"
                   minH="60px"
                 >
-                  {f.descricao || "Sem descrição"}
+                  {f.localFormacao || "Sem descrição"}
                 </Text>
 
                 <Divider mb={5} />
