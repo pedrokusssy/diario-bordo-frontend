@@ -28,7 +28,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
   let slotsUsados = 0;
 
   atividadesOrdenadas.forEach((act) => {
-    const peso = (act.descricao && act.descricao.length > 280) ? 2 : 1;
+    const peso = (act.descricao && act.descricao.length > 200) ? 2 : 1;
 
     if (slotsUsados + peso > 5) {
       while (slotsUsados < 5) {
@@ -70,7 +70,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
     doc.text("DIÁRIO DE BORDO – FORMAÇÃO ESPECIALIZADA", pageWidth / 2, 62, { align: "center" });
 
     // 4. TABELA DE IDENTIFICAÇÃO (Rótulos em DM Serif, Dados em Helvetica)
-    autoTable(doc, {
+   autoTable(doc, {
       startY: 68,
       theme: 'grid',
       styles: { fontSize: 8, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.3 },
@@ -85,7 +85,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
         [
           { content: 'PERÍODO' },
           { content: `${dadosFormacao.periodo.dataInicio} - ${dadosFormacao.periodo.dataFim}` || '' },
-          { content: `Horário: ${dadosFormacao.horario || ''}` }
+          { content: ("Horário:")+`${dadosFormacao.horario || ''}` }
         ],
         [{ content: 'LOCAL FORMAÇÃO' }, { content: dadosFormacao.local || '', colSpan: 2 }],
         [{ content: 'UNIDADE' }, { content: dadosFormacao.unidade || '', colSpan: 2 }],
@@ -95,20 +95,24 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
       margin: { left: 25, right: 25 },
       didParseCell: function (data) {
         if (data.section === 'body') {
-          // APLICA DM SERIF APENAS NOS TÍTULOS (Coluna 0 ou texto que contém ":")
-          if (data.column.index === 0 || (data.cell.text[0] && data.cell.text[0].includes(':'))) {
+          
+          // ALTERAÇÃO APENAS AQUI: Removida a regra do includes(':')
+          if (data.column.index === 0) { 
+            
             data.cell.styles.font = "DMSerif";
             data.cell.styles.fontStyle = "normal"; // Evita erro de bold
             data.cell.styles.fontSize = 8.5;
             data.cell.styles.textColor = [0, 0, 0];
           } else {
+            // O Hospital e o Horário (Coluna 2) agora caem aqui, como texto normal
             data.cell.styles.font = "helvetica";
             data.cell.styles.fontSize = 9;
             data.cell.styles.textColor = [60, 60, 60];
           }
         }
       }
-    });
+});
+    
 
     // Rodapé
     const footerY = pageHeight - 20;
@@ -148,6 +152,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
         fillColor: [210, 210, 210],
         textColor: [0, 0, 0],
         halign: 'center',
+        minCellHeight: 10,
         cellPadding: 1.5
       },
       // CORREÇÃO LARGURA: 25+35+75+25 = 160 (Antes somava 162, o que causava o erro de "fit page")
