@@ -13,21 +13,17 @@ import {
   Center,
   Spinner
 } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
-import { minhaConta } from "../services/api";
+// 1. Apagámos o useEffect, useState e a API
+import { useAppGlobal } from "../contexts/DiarioContext";
 
 function MinhaConta() {
-
   
-  const [formando, setFormando] = useState(null);
+  // 2. Fomos buscar o 'usuario' (e mudámos o nome para 'formando' para não quebrar o HTML) 
+  // e o 'loading' global diretamente ao Contexto
+  const { usuario: formando, loading } = useAppGlobal();
 
-  useEffect(() => {
-    minhaConta(localStorage.getItem("pessoaId"))
-      .then(res => setFormando(res.data))
-      .catch(err => console.error(err));
-  }, []);
-
-  if (!formando) return (
+  // 3. O Spinner agora respeita o loading geral da aplicação
+  if (loading || !formando) return (
     <Center h="60vh">
       <Spinner color="teal.500" size="xl" />
       <Text ml={4}>Carregando dados da conta...</Text>

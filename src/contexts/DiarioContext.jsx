@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import api, { getDiarios, getAllFormacao, getActividade, baseURL } from '../services/api';
+import api, { getDiarios, getDiarioByFormandoId, getAllFormacao, getAllFormacaoByFormandoId, getActividade, baseURL } from '../services/api';
 
 const AppContext = createContext();
 
@@ -11,35 +11,37 @@ export function DiarioProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // Carregamento centralizado
-  const refreshAllData = useCallback(async () => {
-  if (localStorage.getItem("isLogged") !== "true") return;
-  
-  try {
-    setLoading(true);
+const refreshAllData = useCallback(async () => {
+    // CORREÇÃO AQUI: Se não estiver logado, tira o loading antes de sair!
+    if (localStorage.getItem("isLogged") !== "true") {
+      setLoading(false);
+      return;
+    }
     
-    // Usamos Promise.allSettled ou tratamos erros individuais 
-    // para que um 404 no perfil não quebre a lista de diários
-    const [resDiarios, resFormacoes, resAtiv, resUser] = await Promise.all([
-      getDiarios().catch(e => ({ data: [] })),
-      getAllFormacao().catch(e => ({ data: [] })),
-      getActividade().catch(e => ({ data: [] })),
-      api.get("/auth/perfil").catch(e => {
-          console.warn("Perfil não encontrado ou endpoint inexistente");
-          return { data: null }; // Retorna null em vez de estourar o erro
-      })
-    ]);
+    try {
+      setLoading(true);
+      
+      const [resDiarios, resFormacoes, resAtiv, resUser] = await Promise.all([
+        getDiarioByFormandoId(localStorage.getItem("pessoaId")).catch(e => ({ data: [] })),
+        getAllFormacaoByFormandoId(localStorage.getItem("pessoaId")).catch(e => ({ data: [] })),
+        getActividade().catch(e => ({ data: [] })),
+        api.get("/auth/perfil").catch(e => {
+            console.warn("Perfil não encontrado ou endpoint inexistente");
+            return { data: null };
+        })
+      ]);
 
-    setDiarios(resDiarios.data);
-    setFormacoes(resFormacoes.data);
-    setAtividades(resAtiv.data);
-    setUsuario(resUser.data);
-    
-  } catch (error) {
-    console.error("Erro crítico na sincronização:", error);
-  } finally {
-    setLoading(false);
-  }
-}, []);
+      setDiarios(resDiarios.data);
+      setFormacoes(resFormacoes.data);
+      setAtividades(resAtiv.data);
+      setUsuario(resUser.data);
+      
+    } catch (error) {
+      console.error("Erro crítico na sincronização:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     refreshAllData();

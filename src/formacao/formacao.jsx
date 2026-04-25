@@ -16,29 +16,20 @@ import {
   VStack,
   HStack
 } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
 import { FaCalendarAlt, FaInfoCircle, FaGraduationCap, FaChevronRight } from "react-icons/fa";
-import { getAllFormacaoByFormandoId } from "../services/api";
+// 1. Removemos a API daqui e importamos o Contexto Global
+import { useAppGlobal } from "../contexts/DiarioContext";
 
 function FormacaoList() {
-  const [formacoes, setFormacoes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // 2. Fomos buscar as formacoes e o estado de loading diretamente ao Contexto!
+  // Fazemos "loading: isLoading" apenas para renomear a variável e não termos de mudar o teu HTML lá em baixo.
+  const { formacoes, loading: isLoading } = useAppGlobal();
 
   const cardBg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
   const tutorBg = useColorModeValue("gray.50", "gray.800");
 
-  useEffect(() => {
-    getAllFormacaoByFormandoId(localStorage.getItem("pessoaId"))
-      .then((res) => {
-        setFormacoes(res.data);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setIsLoading(false);
-      });
-  }, []);
+  // 3. Adeus useEffect e adeus chamadas à API! O Contexto já trata de tudo.
 
   // --- FUNÇÃO SALVA-VIDAS ---
   // Garante que o Avatar e o Text recebem sempre uma STRING (texto) e nunca um Objeto.
@@ -49,7 +40,6 @@ function FormacaoList() {
     return "Não atribuído";
   };
 
-  console.log(formacoes[0]);
   return (
     <Box p={{ base: 4, md: 8 }} maxW="1600px" mx="auto">
       
@@ -84,7 +74,7 @@ function FormacaoList() {
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={{ base: 6, md: 8 }}>
         {isLoading ? (
           [1, 2, 3].map((i) => <Skeleton key={i} h="300px" borderRadius="xl" />)
-        ) : formacoes.length > 0 ? (
+        ) : formacoes && formacoes.length > 0 ? (
           formacoes.map((f) => {
             
             // Extraímos o nome limpo e seguro antes de construir o Card

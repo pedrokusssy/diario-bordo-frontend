@@ -22,71 +22,61 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEdit, FaTrash, FaPlus, FaFilePdf } from "react-icons/fa";
-import { getDiarioByFormandoId, getAllFormacaoByFormandoId, getFormandoById, deleteDiario } from "../services/api";
+// Apagámos o 'getDiarioByFormandoId' daqui, pois agora vem do Contexto
+import { getAllFormacaoByFormandoId, getFormandoById, deleteDiario } from "../services/api";
 import { gerarDiarioBordoPDF } from "../services/pdfService";
+import { useAppGlobal } from "../contexts/DiarioContext"; 
 
 function DiarioList() {
-  const [diarios, setDiarios] = useState([]);
+  // 1. Puxamos os diários e a função de atualizar diretamente do Contexto Global!
+  const { diarios, refreshAllData } = useAppGlobal();
+
+  // Mantemos apenas os estados locais das formações e do formando
   const [formacoes, setFormacoes] = useState([]);
   const [formando, setFormando] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingLocal, setLoadingLocal] = useState(true);
+  
   const toast = useToast();
   const navigate = useNavigate();
 
   const cardBg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
 
-  useEffect(() => {
-    carregarDiarios();
-  }, []);
-
-  const carregarDiarios = () => {
-    setLoading(true);
-    getDiarioByFormandoId(localStorage.getItem("pessoaId"))
-      .then((response) => setDiarios(response.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
-
   const carregarFormacoes = () => {
-    setLoading(true);
+    setLoadingLocal(true);
     getAllFormacaoByFormandoId(localStorage.getItem("pessoaId"))
       .then((response) => {
-        // console.log(response.data[0].tutor.nome);
         setFormacoes(response.data);
       })
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => setLoadingLocal(false));
   };
 
   const carregarFormando = () => {
-    setLoading(true);
+    setLoadingLocal(true);
     getFormandoById(localStorage.getItem("pessoaId"))
       .then((response) => {
-        // console.log(response.data[0].tutor.nome);
         setFormando(response.data);
       })
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => setLoadingLocal(false));
   };
 
+  // Juntámos os dois useEffects num só para o código ficar mais limpo
   useEffect(() => {
     carregarFormacoes();
-  }, []);
-
-  useEffect(() => {
     carregarFormando();
   }, []);
 
   const handleExportPDF = () => {
-    console.log(formacoes)
+    console.log(formacoes);
     const dadosId = {
       especialidade: formacoes[0].titulo,
       tutor: formacoes[0].tutor.nome,
       formando: formando.nome,
       periodo: {
-        dataInicio:new Date(formacoes[0].periodo.dataInicio).toLocaleDateString('pt-PT') ,
-        dataFim:new Date(formacoes[0].periodo.dataFim).toLocaleDateString('pt-PT'),
+        dataInicio: new Date(formacoes[0].periodo.dataInicio).toLocaleDateString('pt-PT'),
+        dataFim: new Date(formacoes[0].periodo.dataFim).toLocaleDateString('pt-PT'),
       },
       hospitalOrigem: formando.hospitalOrigem,
       horario: formacoes[0].periodo.horaInicio + " - " + formacoes[0].periodo.horaFim,
@@ -107,9 +97,12 @@ function DiarioList() {
     if (window.confirm("Apagar este diário?")) {
       try {
         await deleteDiario(id);
-        setDiarios(diarios.filter(d => d.id !== id));
+        // 2. Aqui a magia acontece: pedimos ao contexto para se atualizar!
+        refreshAllData();
         toast({ title: "Removido", status: "success" });
-      } catch (err) { toast({ title: "Erro", status: "error" }); }
+      } catch (err) { 
+        toast({ title: "Erro", status: "error" }); 
+      }
     }
   };
 
@@ -123,19 +116,19 @@ function DiarioList() {
       bg="gray.50"
     >
       <Container
-        maxW="100%" // Mudado de container.xl para 100% para fluidez total
-        px={[4, 6, 10]} // Padding lateral responsivo
+        maxW="100%"
+        px={[4, 6, 10]}
         h="full"
         display="flex"
         flexDirection="column"
-        pt={[4, 6, 10]} // Topo menor em ecrãs pequenos
+        pt={[4, 6, 10]}
         pb={6}
       >
         {/* HEADER RESPONSIVO */}
         <Flex
           justify="space-between"
-          align={["start", "start", "flex-end"]} // Alinhamento muda conforme o ecrã
-          direction={["column", "column", "row"]} // Empilha no telemóvel/portátil pequeno
+          align={["start", "start", "flex-end"]}
+          direction={["column", "column", "row"]}
           gap={[4, 4, 0]}
           mb={8}
           flexShrink={0}
@@ -156,7 +149,7 @@ function DiarioList() {
               size={["md", "lg"]}
               flex={["1", "1", "initial"]}
               onClick={handleExportPDF}
-              isDisabled={diarios.length === 0}
+              isDisabled={!diarios || diarios.length === 0} // Previne erro caso diários ainda venham vazios
             >
               Exportar PDF
             </Button>
@@ -193,11 +186,9 @@ function DiarioList() {
               "&::-webkit-scrollbar-thumb": { background: "teal.500", borderRadius: "10px" },
             }}
           >
-            {/* O layout="fixed" obriga a tabela a respeitar as larguras das colunas */}
             <Table variant="simple" size={["sm", "md", "lg"]} layout="fixed">
               <Thead position="sticky" top={0} bg={cardBg} zIndex={10} shadow="sm">
                 <Tr>
-                  {/* Larguras em Array: [mobile, tablet/laptop, monitor grande] */}
                   <Th w={["100px", "140px", "180px"]} color="teal.700">Data</Th>
                   <Th w={["120px", "180px", "220px"]} color="teal.700">Atividade</Th>
                   <Th color="teal.700">Descrição Detalhada</Th>
@@ -206,7 +197,7 @@ function DiarioList() {
               </Thead>
 
               <Tbody>
-                {diarios.map((diario) => (
+                {diarios && diarios.map((diario) => (
                   <Tr key={diario.id} _hover={{ bg: "teal.50" }}>
                     <Td fontWeight="bold" fontSize={["xs", "sm", "md"]}>
                       {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
@@ -221,21 +212,20 @@ function DiarioList() {
                         fontSize={["xs", "xs", "sm"]}
                         w="full"
                         textAlign="center"
-                        isTruncated // Corta com "..." se a atividade for muito longa
+                        isTruncated
                       >
                         {diario.actividade.actividade}
                       </Badge>
                     </Td>
 
-                    {/* SOLUÇÃO PARA O BUG DO TEXTO HORIZONTAL */}
                     <Td>
                       <Text
                         fontSize={["xs", "sm"]}
                         color="gray.600"
                         lineHeight="tall"
-                        whiteSpace="normal"    // Força o texto a quebrar a linha
-                        wordBreak="break-word" // Quebra palavras gigantes
-                        noOfLines={[2, 3, 4]}  // Limita linhas para não deformar a tabela
+                        whiteSpace="normal"
+                        wordBreak="break-word"
+                        noOfLines={[2, 3, 4]}
                       >
                         {diario.descricao}
                       </Text>
