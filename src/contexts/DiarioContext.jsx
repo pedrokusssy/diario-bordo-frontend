@@ -10,9 +10,31 @@ export function DiarioProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Carregamento centralizado
-const refreshAllData = useCallback(async () => {
-    // CORREÇÃO AQUI: Se não estiver logado, tira o loading antes de sair!
+  // --- FUNÇÕES GRANULARES (Para recarregar só o que é preciso) ---
+  const refreshDiarios = useCallback(async () => {
+    const pessoaId = localStorage.getItem("pessoaId");
+    if (!pessoaId) return;
+    try {
+      const res = await getDiarioByFormandoId(pessoaId);
+      setDiarios(res.data);
+    } catch (e) {
+      console.error("Erro ao recarregar diários:", e);
+    }
+  }, []);
+
+  const refreshFormacoes = useCallback(async () => {
+    const pessoaId = localStorage.getItem("pessoaId");
+    if (!pessoaId) return;
+    try {
+      const res = await getAllFormacaoByFormandoId(pessoaId);
+      setFormacoes(res.data);
+    } catch (e) {
+      console.error("Erro ao recarregar formações:", e);
+    }
+  }, []);
+
+  // --- CARREGAMENTO INICIAL PESADO (Roda apenas quando a app abre) ---
+  const refreshAllData = useCallback(async () => {
     if (localStorage.getItem("isLogged") !== "true") {
       setLoading(false);
       return;
@@ -20,13 +42,14 @@ const refreshAllData = useCallback(async () => {
     
     try {
       setLoading(true);
+      const pessoaId = localStorage.getItem("pessoaId");
       
       const [resDiarios, resFormacoes, resAtiv, resUser] = await Promise.all([
-        getDiarioByFormandoId(localStorage.getItem("pessoaId")).catch(e => ({ data: [] })),
-        getAllFormacaoByFormandoId(localStorage.getItem("pessoaId")).catch(e => ({ data: [] })),
+        getDiarioByFormandoId(pessoaId).catch(e => ({ data: [] })),
+        getAllFormacaoByFormandoId(pessoaId).catch(e => ({ data: [] })),
         getActividade().catch(e => ({ data: [] })),
         api.get("/auth/perfil").catch(e => {
-            console.warn("Perfil não encontrado ou endpoint inexistente");
+            console.warn("Perfil não encontrado");
             return { data: null };
         })
       ]);
@@ -43,35 +66,48 @@ const refreshAllData = useCallback(async () => {
     }
   }, []);
 
+  const loginSucesso = useCallback(() => {
+    refreshAllData();
+    // Aqui também terias de ter uma lógica para reiniciar o EventSource
+  }, [refreshAllData]);
+
+  // Arranca com tudo na primeira vez
   useEffect(() => {
     refreshAllData();
   }, [refreshAllData]);
 
-  // SSE: Ouve qualquer mudança no Backend
- // SSE: Ouve qualquer mudança no Backend
+  // --- SSE: OUVE MUDANÇAS NO BACKEND DE FORMA INTELIGENTE ---
   useEffect(() => {
-    // 1. Vai buscar o token
     const token = localStorage.getItem("token");
+    const pessoaId = localStorage.getItem("pessoaId");
     
-    // 2. Se não houver token (ex: utilizador não logado), nem tenta conectar
-    if (!token) return;
+    if (!token || !pessoaId) return;
 
-    // 3. Passa o token na URL para passar pelo SecurityFilter do Spring
-    const eventSource = new EventSource(`${baseURL}/api/updates/subscribe?token=${token}`);
+    // Adicionado pessoaId na URL para o backend saber quem é esta aba aberta
+    const eventSource = new EventSource(`${baseURL}/api/updates/subscribe?pessoaId=${pessoaId}&token=${token}`);
 
     eventSource.addEventListener("db-change", (event) => {
-      const changeType = event.data;
-      console.log("Mudança detectada:", changeType);
-      refreshAllData();
+      const oQueMudou = event.data; // Espera receber "DIARIO" ou "FORMACAO"
+      console.log("Notificação do Servidor. Tabela alterada:", oQueMudou);
+
+      // Lógica Condicional: Poupa a Base de Dados
+      if (oQueMudou === "DIARIO") {
+        refreshDiarios();
+      } else if (oQueMudou === "FORMACAO") {
+        refreshFormacoes();
+      } else {
+        // Se a mensagem for outra ou vazia, pelo sim pelo não, atualiza tudo
+        refreshAllData();
+      }
     });
 
     return () => eventSource.close();
-  }, [refreshAllData]);
+  }, [refreshAllData, refreshDiarios, refreshFormacoes]);
 
   return (
     <AppContext.Provider value={{ 
       diarios, formacoes, atividades, usuario, 
-      loading, refreshAllData 
+      loading, refreshAllData, refreshDiarios, refreshFormacoes
     }}>
       {children}
     </AppContext.Provider>
