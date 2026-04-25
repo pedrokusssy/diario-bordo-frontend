@@ -90,8 +90,8 @@ function DiarioList() {
       },
       hospitalOrigem: formando.hospitalOrigem,
       horario: formacoes[0].periodo.horaInicio + " - " + formacoes[0].periodo.horaFim,
-      local: "Hospital da Prelada",
-      unidade: ""
+      local: formacoes[0].localFormacao,
+      unidade: formacoes[0].unidade || ""
     };
 
     const atividadesFormatadas = diarios.map(d => ({
