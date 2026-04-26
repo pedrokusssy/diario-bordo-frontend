@@ -85,7 +85,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
         [
           { content: 'PERÍODO' },
           { content: `${dadosFormacao.periodo.dataInicio} - ${dadosFormacao.periodo.dataFim}` || '' },
-          { content: ("Horário:")+`${dadosFormacao.horario || ''}` }
+          { content: ("Horário: ")+`${dadosFormacao.horario || ''}` }
         ],
         [{ content: 'LOCAL FORMAÇÃO' }, { content: dadosFormacao.local || '', colSpan: 2 }],
         [{ content: 'UNIDADE' }, { content: dadosFormacao.unidade || '', colSpan: 2 }],
