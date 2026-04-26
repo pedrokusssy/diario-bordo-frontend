@@ -65,12 +65,12 @@ function DiarioList() {
       local: formacoes[0]?.localFormacao,
       unidade: formacoes[0]?.unidade || ""
     };
-    const diariosParaPDF = [...(diarios || [])].sort((a, b) => new Date(a.dataActividade) - new Date(b.dataActividade));
-    gerarDiarioBordoPDF(dadosId, diariosParaPDF.map(d => ({
+    const atividadesFormatadas = diariosOrdenados.map(d => ({
       data: new Date(d.dataActividade).toLocaleDateString('pt-PT'),
       atividade: d.actividade.actividade,
       descricao: d.descricao
-    })));
+    }));
+    gerarDiarioBordoPDF(dadosId, atividadesFormatadas);
   };
 
   const handleDelete = async (id) => {
@@ -83,58 +83,40 @@ function DiarioList() {
     }
   };
 
-return (
-    <Box minH="100vh" w="100%" bg="gray.50" pb={10} overflowX="hidden">
+  return (
+    <Box 
+      h="100vh" // SOLUÇÃO: Ecrã trancado
+      w="100%"
+      bg="gray.50" 
+      display="flex"
+      flexDirection="column"
+      overflow="hidden" // SOLUÇÃO: Impede scroll na página toda
+    >
+      {/* ESPAÇADOR OBRIGATÓRIO PARA A NAVBAR FIXED */}
+      <Box flexShrink={0} height={{ base: "80px", md: "110px", lg: "120px" }} />
+
       <Container 
         maxW="container.xl" 
-        px={{ base: 4, md: 8 }} 
-        /* pt (Padding Top):
-          - base: 100px (Telemóvel em pé)
-          - md: 110px (Tablet/PC)
-        */
-        pt={{ base: "100px", md: "110px" }}
-        /* ESTA É A CORREÇÃO PARA O MODO HORIZONTAL:
-          Quando a altura do ecrã for menor que 500px (telemóvel deitado),
-          forçamos o conteúdo a subir para 60px para não ser "comido" pela Navbar.
-        */
-        sx={{
-          "@media screen and (max-height: 500px) and (orientation: landscape)": {
-            pt: "65px !important",
-          },
-        }}
+        px={{ base: 4, md: 8 }}
+        flex="1" // SOLUÇÃO: Container ocupa o resto do ecrã
+        display="flex"
+        flexDirection="column"
+        overflow="hidden"
+        pb={6}
       >
         
-        {/* HEADER RESPONSIVO */}
+        {/* HEADER (TÍTULO E BOTÕES) */}
         <Flex 
           justify="space-between" 
           align="center" 
-          direction="row" 
-          gap={2} 
-          
-          mb={{ base: 4, md: 8 }}
-          sx={{
-            "@media screen and (max-height: 500px)": {
-              mb: 2,
-            },
-          }}
+          mb={6} 
+          pt={2} 
+          flexShrink={0} // SOLUÇÃO: Header nunca é esmagado
         >
-
-          <VStack align="start" spacing={0} flex="1">
-            <Heading 
-              size={{ base: "md", md: "lg", lg: "xl" }} 
-              color="teal.700" 
-              fontWeight="800"
-              lineHeight="1.5"
-            >
-              Diário de Bordo
+          <VStack align="start" spacing={0}>
+            <Heading size={{ base: "md", md: "lg" }} color="gray.500" fontWeight="700">
+            Registos de atividades diárias
             </Heading>
-            <Text 
-              fontSize="sm" 
-              color="gray.500" 
-              display={{ base: "none", md: "block" }}
-            >
-              Registos de formação e atividades diárias
-            </Text>
           </VStack>
 
           <HStack spacing={3}>
@@ -145,11 +127,8 @@ return (
               size={{ base: "sm", md: "lg" }}
               onClick={handleExportPDF}
               isDisabled={diariosOrdenados.length === 0}
-              px={{ base: 4, md: 6 }}
             >
-              <Box as="span" display={{ base: "none", md: "inline" }}>
-                Exportar PDF
-              </Box>
+              <Box as="span" display={{ base: "none", md: "inline" }}>PDF</Box>
             </Button>
 
             <Button
@@ -157,57 +136,63 @@ return (
               colorScheme="teal"
               size={{ base: "sm", md: "lg" }}
               onClick={() => navigate("/novoDiario")}
-              px={{ base: 4, md: 6 }}
             >
-              <Box as="span" display={{ base: "none", md: "inline" }}>
-                Novo Registro
-              </Box>
+              <Box as="span" display={{ base: "none", md: "inline" }}>Novo</Box>
             </Button>
           </HStack>
         </Flex>
 
+        {/* --- VISTA DESKTOP (TABELA COM SCROLL INTERNO) --- */}
         <Box 
-          display={{ base: "none", md: "block" }} 
+          flex="1" // Ocupa espaço até ao fundo
           bg={cardBg} 
-          borderRadius="2xl" 
+          borderRadius="xl" 
           borderWidth="1px" 
           borderColor={borderColor} 
-          shadow="xl" 
+          shadow="md"
+          display={{ base: "none", md: "flex" }} // Flex em vez de block para o scroll funcionar
+          flexDirection="column"
           overflow="hidden"
         >
-          <TableContainer>
+          <TableContainer 
+            flex="1" 
+            overflowY="auto" // Scroll apenas dentro da tabela
+            sx={{
+              "&::-webkit-scrollbar": { width: "8px", height: "8px" },
+              "&::-webkit-scrollbar-thumb": { background: "teal.400", borderRadius: "10px" },
+              "&::-webkit-scrollbar-track": { background: "gray.50" },
+            }}
+          >
             <Table variant="simple" layout="fixed">
-              <Thead bg="gray.50">
-                <Tr>
-                  <Th w="15%">Data</Th>
-                  <Th w="25%">Atividade</Th>
-                  <Th w="45%">Descrição</Th>
-                  <Th w="15%" textAlign="center">Ações</Th>
+              <Thead>
+                {/* Cabeçalho Fixo (Sticky) com fundo branco */}
+                <Tr position="sticky" top={0} zIndex={2} shadow="sm">
+                  <Th w="15%" bg="white">Data</Th>
+                  <Th w="25%" bg="white">Atividade</Th>
+                  <Th bg="white">Descrição</Th>
+                  <Th w="120px" textAlign="center" bg="white">Ações</Th>
                 </Tr>
               </Thead>
               <Tbody>
                 {diariosOrdenados.map((diario) => (
-                  <Tr key={diario.id} _hover={{ bg: "teal.50" }}>
-                    <Td fontWeight="bold">{new Date(diario.dataActividade).toLocaleDateString('pt-PT')}</Td>
+                  <Tr key={diario.id} _hover={{ bg: "gray.50" }}>
+                    <Td fontWeight="bold" whiteSpace="nowrap">
+                      {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
+                    </Td>
                     <Td>
-                      <Badge 
-                        colorScheme="teal" 
-                        p={2} 
-                        borderRadius="md" 
-                        variant="subtle" 
-                        whiteSpace="normal" // Quebra linha aqui
-                        wordBreak="break-word"
-                      >
+                      <Badge colorScheme="teal" variant="subtle" p={2} borderRadius="md" whiteSpace="normal">
                         {diario.actividade.actividade}
                       </Badge>
                     </Td>
                     <Td>
-                      <Text fontSize="sm" color="gray.600" whiteSpace="normal" wordBreak="break-word">{diario.descricao}</Text>
+                      <Text fontSize="sm" color="gray.600" whiteSpace="normal">
+                        {diario.descricao}
+                      </Text>
                     </Td>
                     <Td>
-                      <HStack justify="center" spacing={2}>
-                        <IconButton aria-label="Edit" icon={<FaEdit />} variant="ghost" colorScheme="blue" size="sm" onClick={() => navigate(`/editarDiario/${diario.id}`)} />
-                        <IconButton aria-label="Delete" icon={<FaTrash />} variant="ghost" colorScheme="red" size="sm" onClick={() => handleDelete(diario.id)} />
+                      <HStack justify="center" spacing={1}>
+                        <IconButton aria-label="Edit" icon={<FaEdit />} size="sm" variant="ghost" colorScheme="blue" onClick={() => navigate(`/editarDiario/${diario.id}`)} />
+                        <IconButton aria-label="Delete" icon={<FaTrash />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDelete(diario.id)} />
                       </HStack>
                     </Td>
                   </Tr>
@@ -217,57 +202,37 @@ return (
           </TableContainer>
         </Box>
 
-        {/* --- VISTA TELEMÓVEL (Cards para ecrãs pequenos) --- */}
-        <VStack display={{ base: "flex", md: "none" }} spacing={4} w="full" align="stretch">
-          {diariosOrdenados.map((diario) => (
-            <Box 
-              key={diario.id} 
-              bg={cardBg} 
-              p={4} 
-              borderRadius="xl" 
-              borderWidth="1px" 
-              borderColor={borderColor} 
-              shadow="md"
-              mx={1}
-            >
-              <Stack direction="row" justify="space-between" align="start" mb={3} spacing={2}>
-                <Text fontWeight="bold" color="teal.700" fontSize="sm" whiteSpace="nowrap">
-                  {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
-                </Text>
-                
-                <Badge 
-                  colorScheme="teal" 
-                  variant="subtle" 
-                  fontSize="xs" 
-                  px={2}
-                  py={1}
-                  borderRadius="md"
-                  whiteSpace="normal"    // Quebra linha no mobile
-                  wordBreak="break-word"
-                  textAlign="right"
-                  maxW="180px"           // Limita largura para forçar a quebra
-                >
-                  {diario.actividade.actividade}
-                </Badge>
-              </Stack>
-              
-              <Text fontSize="sm" color="gray.600" mb={4} wordBreak="break-word">
-                {diario.descricao}
-              </Text>
-
-              <Divider mb={3} />
-              
-              <HStack justify="flex-end" spacing={2}>
-                <Button size="xs" leftIcon={<FaEdit />} variant="outline" colorScheme="blue" onClick={() => navigate(`/editarDiario/${diario.id}`)}>
-                  Editar
-                </Button>
-                <Button size="xs" leftIcon={<FaTrash />} variant="outline" colorScheme="red" onClick={() => handleDelete(diario.id)}>
-                  Apagar
-                </Button>
-              </HStack>
-            </Box>
-          ))}
-        </VStack>
+        {/* --- VISTA TELEMÓVEL (CARDS COM SCROLL INTERNO) --- */}
+        <Box
+          flex="1" // Ocupa espaço até ao fundo
+          display={{ base: "flex", md: "none" }} 
+          flexDirection="column"
+          overflowY="auto" // Scroll apenas para os Cards
+          sx={{
+            "&::-webkit-scrollbar": { display: "none" }, // Esconde a barra para visual mais limpo
+          }}
+        >
+          <VStack spacing={4} align="stretch" pb={4}>
+            {diariosOrdenados.map((diario) => (
+              <Box key={diario.id} bg={cardBg} p={4} borderRadius="xl" borderWidth="1px" borderColor={borderColor} shadow="sm">
+                <Flex justify="space-between" align="start" mb={2}>
+                  <Text fontWeight="bold" fontSize="sm" color="teal.700">
+                    {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
+                  </Text>
+                  <Badge colorScheme="teal" variant="subtle" whiteSpace="normal" maxW="150px">
+                    {diario.actividade.actividade}
+                  </Badge>
+                </Flex>
+                <Text fontSize="sm" color="gray.600" mb={4}>{diario.descricao}</Text>
+                <Divider mb={3} />
+                <HStack justify="flex-end">
+                  <Button size="xs" variant="outline" colorScheme="blue" onClick={() => navigate(`/editarDiario/${diario.id}`)}>Editar</Button>
+                  <Button size="xs" variant="outline" colorScheme="red" onClick={() => handleDelete(diario.id)}>Apagar</Button>
+                </HStack>
+              </Box>
+            ))}
+          </VStack>
+        </Box>
 
       </Container>
     </Box>
