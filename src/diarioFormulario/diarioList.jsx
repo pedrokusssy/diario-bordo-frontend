@@ -18,20 +18,20 @@ import {
   useColorModeValue,
   VStack,
   Container,
+  Stack,
+  Divider,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEdit, FaTrash, FaPlus, FaFilePdf } from "react-icons/fa";
 import { getAllFormacaoByFormandoId, getFormandoById, deleteDiario } from "../services/api";
 import { gerarDiarioBordoPDF } from "../services/pdfService";
-import { useAppGlobal } from "../contexts/DiarioContext"; 
+import { useAppGlobal } from "../contexts/DiarioContext";
 
 function DiarioList() {
   const { diarios, refreshAllData } = useAppGlobal();
-
   const [formacoes, setFormacoes] = useState([]);
   const [formando, setFormando] = useState([]);
-  const [loadingLocal, setLoadingLocal] = useState(true);
   
   const toast = useToast();
   const navigate = useNavigate();
@@ -39,34 +39,19 @@ function DiarioList() {
   const cardBg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
 
-  // --- A MÁGICA DA ORDENAÇÃO ACONTECE AQUI ---
-  // Criamos uma cópia do array e ordenamos (b - a = do mais recente para o mais antigo)
   const diariosOrdenados = [...(diarios || [])].sort((a, b) => {
     return new Date(b.dataActividade) - new Date(a.dataActividade);
   });
 
-  const carregarFormacoes = () => {
-    setLoadingLocal(true);
-    getAllFormacaoByFormandoId(localStorage.getItem("pessoaId"))
-      .then((response) => setFormacoes(response.data))
-      .catch(console.error)
-      .finally(() => setLoadingLocal(false));
-  };
-
-  const carregarFormando = () => {
-    setLoadingLocal(true);
-    getFormandoById(localStorage.getItem("pessoaId"))
-      .then((response) => setFormando(response.data))
-      .catch(console.error)
-      .finally(() => setLoadingLocal(false));
-  };
-
   useEffect(() => {
-    carregarFormacoes();
-    carregarFormando();
+    const id = localStorage.getItem("pessoaId");
+    if (id) {
+      getAllFormacaoByFormandoId(id).then(res => setFormacoes(res.data)).catch(console.error);
+      getFormandoById(id).then(res => setFormando(res.data)).catch(console.error);
+    }
   }, []);
 
- const handleExportPDF = () => {
+  const handleExportPDF = () => {
     const dadosId = {
       especialidade: formacoes[0]?.titulo,
       tutor: formacoes[0]?.tutor?.nome,
@@ -80,174 +65,149 @@ function DiarioList() {
       local: formacoes[0]?.localFormacao,
       unidade: formacoes[0]?.unidade || ""
     };
-
-    // --- NOVA ORDENAÇÃO EXCLUSIVA PARA O PDF ---
-    // a - b = ordena do mais antigo para o mais recente
-    const diariosParaPDF = [...(diarios || [])].sort((a, b) => {
-      return new Date(a.dataActividade) - new Date(b.dataActividade);
-    });
-
-    const atividadesFormatadas = diariosParaPDF.map(d => ({
+    const diariosParaPDF = [...(diarios || [])].sort((a, b) => new Date(a.dataActividade) - new Date(b.dataActividade));
+    gerarDiarioBordoPDF(dadosId, diariosParaPDF.map(d => ({
       data: new Date(d.dataActividade).toLocaleDateString('pt-PT'),
       atividade: d.actividade.actividade,
       descricao: d.descricao
-    }));
-
-    gerarDiarioBordoPDF(dadosId, atividadesFormatadas);
+    })));
   };
-  
+
   const handleDelete = async (id) => {
     if (window.confirm("Apagar este diário?")) {
       try {
         await deleteDiario(id);
         refreshAllData();
         toast({ title: "Removido", status: "success" });
-      } catch (err) { 
-        toast({ title: "Erro", status: "error" }); 
-      }
+      } catch (err) { toast({ title: "Erro", status: "error" }); }
     }
   };
 
-  return (
-    <Box
-      h="calc(100vh - 64px)"
-      w="100%"
-      display="flex"
-      flexDirection="column"
-      overflow="hidden"
-      bg="gray.50"
-    >
-      <Container
-        maxW="100%"
-        px={[4, 6, 10]}
-        h="full"
-        display="flex"
-        flexDirection="column"
-        pt={[4, 6, 10]}
-        pb={6}
+return (
+    <Box minH="100vh" w="100%" bg="gray.50" pb={10} overflowX="hidden">
+      <Container 
+        maxW="container.xl" 
+        px={{ base: 4, md: 8 }} 
+        /* pt (Padding Top):
+          - base: 100px (Telemóvel em pé)
+          - md: 110px (Tablet/PC)
+        */
+        pt={{ base: "100px", md: "110px" }}
+        /* ESTA É A CORREÇÃO PARA O MODO HORIZONTAL:
+          Quando a altura do ecrã for menor que 500px (telemóvel deitado),
+          forçamos o conteúdo a subir para 60px para não ser "comido" pela Navbar.
+        */
+        sx={{
+          "@media screen and (max-height: 500px) and (orientation: landscape)": {
+            pt: "65px !important",
+          },
+        }}
       >
-        <Flex
-          justify="space-between"
-          align={["start", "start", "flex-end"]}
-          direction={["column", "column", "row"]}
-          gap={[4, 4, 0]}
-          mb={8}
-          flexShrink={0}
+        
+        {/* HEADER RESPONSIVO */}
+        <Flex 
+          justify="space-between" 
+          align="center" 
+          direction="row" 
+          gap={2} 
+          
+          mb={{ base: 4, md: 8 }}
+          sx={{
+            "@media screen and (max-height: 500px)": {
+              mb: 2,
+            },
+          }}
         >
-          <VStack align="start" spacing={1}>
-            <Heading size={["lg", "xl"]} color="teal.700" letterSpacing="tight">
+
+          <VStack align="start" spacing={0} flex="1">
+            <Heading 
+              size={{ base: "md", md: "lg", lg: "xl" }} 
+              color="teal.700" 
+              fontWeight="800"
+              lineHeight="1.5"
+            >
               Diário de Bordo
             </Heading>
-            <Text fontSize={["sm", "md"]} color="gray.500">
+            <Text 
+              fontSize="sm" 
+              color="gray.500" 
+              display={{ base: "none", md: "block" }}
+            >
               Registos de formação e atividades diárias
             </Text>
           </VStack>
 
-          <HStack spacing={4} w={["full", "full", "auto"]}>
+          <HStack spacing={3}>
             <Button
               leftIcon={<FaFilePdf />}
               colorScheme="orange"
-              size={["md", "lg"]}
-              flex={["1", "1", "initial"]}
+              variant="outline"
+              size={{ base: "sm", md: "lg" }}
               onClick={handleExportPDF}
               isDisabled={diariosOrdenados.length === 0}
+              px={{ base: 4, md: 6 }}
             >
-              Exportar PDF
+              <Box as="span" display={{ base: "none", md: "inline" }}>
+                Exportar PDF
+              </Box>
             </Button>
 
             <Button
               leftIcon={<FaPlus />}
               colorScheme="teal"
-              size={["md", "lg"]}
-              flex={["1", "1", "initial"]}
+              size={{ base: "sm", md: "lg" }}
               onClick={() => navigate("/novoDiario")}
+              px={{ base: 4, md: 6 }}
             >
-              Novo Registro
+              <Box as="span" display={{ base: "none", md: "inline" }}>
+                Novo Registro
+              </Box>
             </Button>
           </HStack>
         </Flex>
 
-        <Box
-          flex="1"
-          bg={cardBg}
-          borderRadius="2xl"
-          borderWidth="1px"
-          borderColor={borderColor}
-          shadow="2xl"
-          display="flex"
-          flexDirection="column"
+        <Box 
+          display={{ base: "none", md: "block" }} 
+          bg={cardBg} 
+          borderRadius="2xl" 
+          borderWidth="1px" 
+          borderColor={borderColor} 
+          shadow="xl" 
           overflow="hidden"
         >
-          <TableContainer
-            overflowY="auto"
-            flex="1"
-            sx={{
-              "&::-webkit-scrollbar": { width: "8px" },
-              "&::-webkit-scrollbar-thumb": { background: "teal.500", borderRadius: "10px" },
-            }}
-          >
-            <Table variant="simple" size={["sm", "md", "lg"]} layout="fixed">
-              <Thead position="sticky" top={0} bg={cardBg} zIndex={10} shadow="sm">
+          <TableContainer>
+            <Table variant="simple" layout="fixed">
+              <Thead bg="gray.50">
                 <Tr>
-                  <Th w={["100px", "140px", "180px"]} color="teal.700">Data</Th>
-                  <Th w={["120px", "180px", "220px"]} color="teal.700">Atividade</Th>
-                  <Th color="teal.700">Descrição Detalhada</Th>
-                  <Th w={["80px", "100px", "120px"]} textAlign="center" color="teal.700">Ações</Th>
+                  <Th w="15%">Data</Th>
+                  <Th w="25%">Atividade</Th>
+                  <Th w="45%">Descrição</Th>
+                  <Th w="15%" textAlign="center">Ações</Th>
                 </Tr>
               </Thead>
-
               <Tbody>
-                {/* Usamos a lista ORDENADA para desenhar as linhas da tabela */}
                 {diariosOrdenados.map((diario) => (
                   <Tr key={diario.id} _hover={{ bg: "teal.50" }}>
-                    <Td fontWeight="bold" fontSize={["xs", "sm", "md"]}>
-                      {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
-                    </Td>
-
+                    <Td fontWeight="bold">{new Date(diario.dataActividade).toLocaleDateString('pt-PT')}</Td>
                     <Td>
-                      <Badge
-                        colorScheme="teal"
-                        p={2}
-                        borderRadius="md"
-                        variant="subtle"
-                        fontSize={["xs", "xs", "sm"]}
-                        w="full"
-                        textAlign="center"
-                        isTruncated
+                      <Badge 
+                        colorScheme="teal" 
+                        p={2} 
+                        borderRadius="md" 
+                        variant="subtle" 
+                        whiteSpace="normal" // Quebra linha aqui
+                        wordBreak="break-word"
                       >
                         {diario.actividade.actividade}
                       </Badge>
                     </Td>
-
                     <Td>
-                      <Text
-                        fontSize={["xs", "sm"]}
-                        color="gray.600"
-                        lineHeight="tall"
-                        whiteSpace="normal"
-                        wordBreak="break-word"
-                        noOfLines={[2, 3, 4]}
-                      >
-                        {diario.descricao}
-                      </Text>
+                      <Text fontSize="sm" color="gray.600" whiteSpace="normal" wordBreak="break-word">{diario.descricao}</Text>
                     </Td>
-
                     <Td>
-                      <HStack justify="center" spacing={[1, 2]}>
-                        <IconButton
-                          icon={<FaEdit />}
-                          variant="ghost"
-                          colorScheme="blue"
-                          size="sm"
-                          onClick={() => navigate(`/editarDiario/${diario.id}`)}
-                        />
-                        <IconButton
-                          icon={<FaTrash />}
-                          variant="ghost"
-                          colorScheme="red"
-                          size="sm"
-                          onClick={() => handleDelete(diario.id)}
-                        />
+                      <HStack justify="center" spacing={2}>
+                        <IconButton aria-label="Edit" icon={<FaEdit />} variant="ghost" colorScheme="blue" size="sm" onClick={() => navigate(`/editarDiario/${diario.id}`)} />
+                        <IconButton aria-label="Delete" icon={<FaTrash />} variant="ghost" colorScheme="red" size="sm" onClick={() => handleDelete(diario.id)} />
                       </HStack>
                     </Td>
                   </Tr>
@@ -256,6 +216,59 @@ function DiarioList() {
             </Table>
           </TableContainer>
         </Box>
+
+        {/* --- VISTA TELEMÓVEL (Cards para ecrãs pequenos) --- */}
+        <VStack display={{ base: "flex", md: "none" }} spacing={4} w="full" align="stretch">
+          {diariosOrdenados.map((diario) => (
+            <Box 
+              key={diario.id} 
+              bg={cardBg} 
+              p={4} 
+              borderRadius="xl" 
+              borderWidth="1px" 
+              borderColor={borderColor} 
+              shadow="md"
+              mx={1}
+            >
+              <Stack direction="row" justify="space-between" align="start" mb={3} spacing={2}>
+                <Text fontWeight="bold" color="teal.700" fontSize="sm" whiteSpace="nowrap">
+                  {new Date(diario.dataActividade).toLocaleDateString('pt-PT')}
+                </Text>
+                
+                <Badge 
+                  colorScheme="teal" 
+                  variant="subtle" 
+                  fontSize="xs" 
+                  px={2}
+                  py={1}
+                  borderRadius="md"
+                  whiteSpace="normal"    // Quebra linha no mobile
+                  wordBreak="break-word"
+                  textAlign="right"
+                  maxW="180px"           // Limita largura para forçar a quebra
+                >
+                  {diario.actividade.actividade}
+                </Badge>
+              </Stack>
+              
+              <Text fontSize="sm" color="gray.600" mb={4} wordBreak="break-word">
+                {diario.descricao}
+              </Text>
+
+              <Divider mb={3} />
+              
+              <HStack justify="flex-end" spacing={2}>
+                <Button size="xs" leftIcon={<FaEdit />} variant="outline" colorScheme="blue" onClick={() => navigate(`/editarDiario/${diario.id}`)}>
+                  Editar
+                </Button>
+                <Button size="xs" leftIcon={<FaTrash />} variant="outline" colorScheme="red" onClick={() => handleDelete(diario.id)}>
+                  Apagar
+                </Button>
+              </HStack>
+            </Box>
+          ))}
+        </VStack>
+
       </Container>
     </Box>
   );

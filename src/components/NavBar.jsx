@@ -36,16 +36,18 @@ const handleLogout = () => {
 
 
   return (
-    <Box
-      bg="teal.500"
-      px={{ base: 4, md: 20, lg: 80 }}
-      py={4}
-      color="white"
-      position="sticky"
-      top={0}
-      zIndex={1000}
-      boxShadow="sm"
-    >
+    // No teu componente Navbar.jsx, altera a linha do Box principal:
+// No Navbar.jsx, altera o Box principal:
+<Box
+  bg="teal.500"
+  px={{ base: 4, md: 10, lg: 20 }} 
+  py={{ base: 2, md: 4 }} // Menor no mobile (2), normal no PC (4)
+  position="sticky"
+  color={"white"}
+  top={0}
+  zIndex={1000}
+>
+    
       <Flex alignItems="center" justifyContent="space-between">
         <Box fontWeight="bold" fontSize="xl" letterSpacing="tight">
           DIÁRIO DE BORDO
