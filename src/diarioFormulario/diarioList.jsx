@@ -13,63 +13,88 @@ import {
   Tr,
   Th,
   Td,
+  Divider,
   TableContainer,
   IconButton,
   useColorModeValue,
   VStack,
   Container,
-  Stack,
-  Divider,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEdit, FaTrash, FaPlus, FaFilePdf } from "react-icons/fa";
+// Apagámos o 'getDiarioByFormandoId' daqui, pois agora vem do Contexto
 import { getAllFormacaoByFormandoId, getFormandoById, deleteDiario } from "../services/api";
 import { gerarDiarioBordoPDF } from "../services/pdfService";
-import { useAppGlobal } from "../contexts/DiarioContext";
+import { useAppGlobal } from "../contexts/DiarioContext"; 
 
 function DiarioList() {
+  // 1. Puxamos os diários e a função de atualizar diretamente do Contexto Global!
   const { diarios, refreshAllData } = useAppGlobal();
+
+  // Mantemos apenas os estados locais das formações e do formando
   const [formacoes, setFormacoes] = useState([]);
   const [formando, setFormando] = useState([]);
+  const [loadingLocal, setLoadingLocal] = useState(true);
   
   const toast = useToast();
   const navigate = useNavigate();
 
   const cardBg = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.200", "gray.600");
-
-  const diariosOrdenados = [...(diarios || [])].sort((a, b) => {
+const diariosOrdenados = [...(diarios || [])].sort((a, b) => {
     return new Date(b.dataActividade) - new Date(a.dataActividade);
   });
 
+
+  const carregarFormacoes = () => {
+    setLoadingLocal(true);
+    getAllFormacaoByFormandoId(localStorage.getItem("pessoaId"))
+      .then((response) => {
+        setFormacoes(response.data);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingLocal(false));
+  };
+
+  const carregarFormando = () => {
+    setLoadingLocal(true);
+    getFormandoById(localStorage.getItem("pessoaId"))
+      .then((response) => {
+        setFormando(response.data);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingLocal(false));
+  };
+
+  // Juntámos os dois useEffects num só para o código ficar mais limpo
   useEffect(() => {
-    const id = localStorage.getItem("pessoaId");
-    if (id) {
-      getAllFormacaoByFormandoId(id).then(res => setFormacoes(res.data)).catch(console.error);
-      getFormandoById(id).then(res => setFormando(res.data)).catch(console.error);
-    }
+    carregarFormacoes();
+    carregarFormando();
   }, []);
 
   const handleExportPDF = () => {
+    console.log(formacoes);
     const dadosId = {
-      especialidade: formacoes[0]?.titulo,
-      tutor: formacoes[0]?.tutor?.nome,
+      especialidade: formacoes[0].titulo,
+      tutor: formacoes[0].tutor.nome,
       formando: formando.nome,
       periodo: {
-        dataInicio: formacoes[0]?.periodo?.dataInicio ? new Date(formacoes[0].periodo.dataInicio).toLocaleDateString('pt-PT') : '',
-        dataFim: formacoes[0]?.periodo?.dataFim ? new Date(formacoes[0].periodo.dataFim).toLocaleDateString('pt-PT') : '',
+        dataInicio: new Date(formacoes[0].periodo.dataInicio).toLocaleDateString('pt-PT'),
+        dataFim: new Date(formacoes[0].periodo.dataFim).toLocaleDateString('pt-PT'),
       },
       hospitalOrigem: formando.hospitalOrigem,
-      horario: formacoes[0]?.periodo ? `${formacoes[0].periodo.horaInicio} - ${formacoes[0].periodo.horaFim}` : '',
-      local: formacoes[0]?.localFormacao,
-      unidade: formacoes[0]?.unidade || ""
+      horario: formacoes[0].periodo.horaInicio + " - " + formacoes[0].periodo.horaFim,
+      local: formacoes[0].localFormacao,
+      unidade: formacoes[0].unidade || ""
     };
-    const atividadesFormatadas = diariosOrdenados.map(d => ({
+
+    const atividadesFormatadas = diarios.map(d => ({
       data: new Date(d.dataActividade).toLocaleDateString('pt-PT'),
       atividade: d.actividade.actividade,
       descricao: d.descricao
     }));
+
     gerarDiarioBordoPDF(dadosId, atividadesFormatadas);
   };
 
@@ -77,9 +102,12 @@ function DiarioList() {
     if (window.confirm("Apagar este diário?")) {
       try {
         await deleteDiario(id);
+        // 2. Aqui a magia acontece: pedimos ao contexto para se atualizar!
         refreshAllData();
         toast({ title: "Removido", status: "success" });
-      } catch (err) { toast({ title: "Erro", status: "error" }); }
+      } catch (err) { 
+        toast({ title: "Erro", status: "error" }); 
+      }
     }
   };
 
@@ -128,7 +156,7 @@ function DiarioList() {
               onClick={handleExportPDF}
               isDisabled={diariosOrdenados.length === 0}
             >
-              <Box as="span" display={{ base: "none", md: "inline" }}>PDF</Box>
+              <Box as="span" display={{ base: "none", md: "inline" }}>Exportar PDF</Box>
             </Button>
 
             <Button
