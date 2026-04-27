@@ -99,7 +99,7 @@ function Navbar({isCollapsed, setIsCollapsed}) {
             // 2. Teste de clique forçado
             onClick={(e) => {
               e.stopPropagation(); // Impede que o clique "fuja" para outros elementos
-              console.log("BOTÃO CLICADO! Valor atual:", isCollapsed);
+              
               setIsCollapsed(!isCollapsed);
             }}
 
