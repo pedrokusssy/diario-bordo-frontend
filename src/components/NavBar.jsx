@@ -92,7 +92,7 @@ function Navbar({isCollapsed, setIsCollapsed}) {
             boxShadow="lg"
             border="2px solid"
             borderColor="teal.600"
-            _hover={{ bg: "teal.400" }}
+            
             // 1. Z-INDEX ALTÍSSIMO para garantir que o clique é detetado
             zIndex={9999}
 
