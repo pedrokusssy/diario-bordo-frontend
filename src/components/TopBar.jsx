@@ -26,6 +26,7 @@ function Topbar() {
   return (
     <Flex
       as="header"
+      display={{ base: "none", md: "flex" }}
       position="fixed"
       top={0}
       left={0}
