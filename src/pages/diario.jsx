@@ -17,12 +17,14 @@ import {
   Spinner,
   Container,
   Divider,
-  VStack
+  VStack,
+  HStack,
+  Badge
 } from "@chakra-ui/react";
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FaBook, FaCalendarAlt, FaTasks, FaSave, FaEdit, FaArrowLeft } from "react-icons/fa";
+import { FaBook, FaCalendarAlt, FaTasks, FaSave, FaEdit, FaArrowLeft, FaPlus } from "react-icons/fa";
 
 import { useAppGlobal } from "../contexts/DiarioContext"; 
 import { createDiario, getDiarioById, updateDiario } from "../services/api";
@@ -34,14 +36,16 @@ function Diario() {
 
   const { atividades, usuario, loading } = useAppGlobal();
 
-  const bg = useColorModeValue("white", "gray.700");
-  const borderColor = useColorModeValue("gray.200", "gray.600");
+  const bg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
   const secondaryTextColor = useColorModeValue("gray.500", "gray.400");
+  const inputBg = useColorModeValue("gray.50", "gray.900");
 
   const [actividadeId, setActividadeId] = useState("");
   const [dataActividade, setDataActividade] = useState("");
   const [descricao, setDescricao] = useState("");
   const [buscandoDados, setBuscandoDados] = useState(false);
+  const [issubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -62,9 +66,11 @@ function Diario() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (!actividadeId || !dataActividade || !descricao) {
-      toast({ title: "Campos obrigatórios", description: "Por favor, preencha todos os campos.", status: "warning" });
+      toast({ title: "Campos obrigatórios", description: "Por favor, preencha todos os campos.", status: "warning", variant: "subtle" });
+      setIsSubmitting(false);
       return;
     }
 
@@ -78,14 +84,16 @@ function Diario() {
     try {
       if (id) {
         await updateDiario(id, dadosDoDiario);
-        toast({ title: "Sucesso!", description: "Diário atualizado com sucesso.", status: "success" });
+        toast({ title: "Sucesso!", description: "Registo atualizado com sucesso.", status: "success", variant: "left-accent" });
       } else {
         await createDiario(dadosDoDiario);
-        toast({ title: "Sucesso!", description: "Diário criado com sucesso.", status: "success" });
+        toast({ title: "Sucesso!", description: "Novo registo criado com sucesso.", status: "success", variant: "left-accent" });
       }
       navigate("/diarios");
     } catch (error) {
-      toast({ title: "Erro", description: "Ocorreu um erro ao salvar.", status: "error" });
+      toast({ title: "Erro", description: "Ocorreu um erro ao salvar os dados.", status: "error" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -101,71 +109,78 @@ function Diario() {
   }
 
   return (
-    <Container maxW="container.md" py={{ base: 4, md: 12 }} px={{ base: 4, md: 6 }}>
+    <Container maxW="container.md" py={{ base: 2, md: 6 }}>
       
       <Button 
         leftIcon={<FaArrowLeft />} 
         variant="ghost" 
-        mb={6} 
+        mb={4} 
         colorScheme="teal" 
         size="sm"
+        borderRadius="full"
         onClick={() => navigate("/diarios")}
+        _hover={{ bg: "teal.50", color: "teal.600" }}
       >
         Voltar para a lista
       </Button>
 
       <Box
         bg={bg}
-        p={{ base: 5, sm: 8, md: 12 }} // Padding reduzido no mobile (5) e maior no desktop (12)
-        borderRadius="2xl"
+        p={{ base: 6, md: 10 }}
+        borderRadius="24px"
         borderWidth="1px"
         borderColor={borderColor}
-        boxShadow="2xl"
+        boxShadow="0 10px 30px rgba(0,0,0,0.05)"
         position="relative"
-        overflow="hidden"
+        transition="all 0.3s"
       >
-        <Box position="absolute" top={0} left={0} right={0} h="4px" bg="teal.500" />
+        <Box position="absolute" top={0} left={0} right={0} h="6px" bg="teal.500" borderTopRadius="24px" />
 
-        <Flex align="center" mb={{ base: 6, md: 10 }} direction={{ base: "row", sm: "row" }}>
-          <Center 
-            w={{ base: 10, md: 14 }} 
-            h={{ base: 10, md: 14 }} 
-            bg="teal.50" 
-            borderRadius="full" 
-            mr={{ base: 3, md: 5 }}
-            flexShrink={0}
-          >
-            <Icon as={id ? FaEdit : FaBook} w={{ base: 5, md: 6 }} h={{ base: 5, md: 6 }} color="teal.500" />
-          </Center>
-          <Box>
-            <Heading size={{ base: "md", md: "lg" }} color="gray.800" letterSpacing="tight">
-              {id ? "Editar Registro" : "Novo Lançamento"}
-            </Heading>
-            <Text color={secondaryTextColor} fontSize={{ base: "xs", md: "md" }}>
-              Formando: <Text as="span" fontWeight="bold" color="teal.600">{usuario?.nome}</Text>
-            </Text>
-          </Box>
+        <Flex align="center" mb={8} justify="space-between">
+          <HStack spacing={4}>
+            <Center 
+              w={12} 
+              h={12} 
+              bg="teal.50" 
+              borderRadius="16px" 
+              flexShrink={0}
+            >
+              <Icon as={id ? FaEdit : FaBook} w={6} h={6} color="teal.500" />
+            </Center>
+            <Box>
+              <Heading size="md" color="gray.800" fontWeight="700">
+                {id ? "Editar Registo" : "Novo Lançamento"}
+              </Heading>
+              <Text color={secondaryTextColor} fontSize="sm">
+                Formando: <Text as="span" fontWeight="bold" color="teal.600">{usuario?.nome}</Text>
+              </Text>
+            </Box>
+          </HStack>
+          
+          <Badge display={{ base: "none", sm: "block" }} colorScheme="teal" variant="subtle" px={3} borderRadius="full">
+            {usuario?.nome?.split(' ')[0]}
+          </Badge>
         </Flex>
 
-        <Divider mb={{ base: 6, md: 10 }} />
+        <Divider mb={8} />
 
         <form onSubmit={handleSubmit}>
-          <Stack spacing={{ base: 5, md: 8 }}>
+          <Stack spacing={6}>
             
-            <Stack direction={{ base: "column", md: "row" }} spacing={{ base: 4, md: 6 }}>
+            <Stack direction={{ base: "column", md: "row" }} spacing={6}>
               <FormControl isRequired>
-                <FormLabel fontWeight="bold" color="gray.700" mb={2} fontSize={{ base: "sm", md: "md" }}>
-                  <Icon as={FaTasks} mr={2} color="teal.400" />
+                <FormLabel fontWeight="600" color="gray.700" fontSize="sm">
+                  <Icon as={FaTasks} mr={2} color="teal.500" />
                   Atividade Realizada
                 </FormLabel>
                 <Select
                   placeholder="Selecione a atividade"
                   value={actividadeId}
                   onChange={(e) => setActividadeId(e.target.value)}
-                  focusBorderColor="teal.400"
-                  size={{ base: "md", md: "lg" }}
-                  borderRadius="lg"
-                  bg={useColorModeValue("gray.50", "gray.800")}
+                  focusBorderColor="teal.500"
+                  borderRadius="xl"
+                  bg={inputBg}
+                  h="50px"
                 >
                   {atividades.map((act) => (
                     <option value={act.id} key={act.id}>
@@ -176,36 +191,36 @@ function Diario() {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel fontWeight="bold" color="gray.700" mb={2} fontSize={{ base: "sm", md: "md" }}>
-                  <Icon as={FaCalendarAlt} mr={2} color="teal.400" />
-                  Data do Registro
+                <FormLabel fontWeight="600" color="gray.700" fontSize="sm">
+                  <Icon as={FaCalendarAlt} mr={2} color="teal.500" />
+                  Data do Registo
                 </FormLabel>
                 <Input
                   type="date"
                   value={dataActividade}
                   onChange={(e) => setDataActividade(e.target.value)}
-                  focusBorderColor="teal.400"
-                  size={{ base: "md", md: "lg" }}
-                  borderRadius="lg"
-                  bg={useColorModeValue("gray.50", "gray.800")}
+                  focusBorderColor="teal.500"
+                  borderRadius="xl"
+                  bg={inputBg}
+                  h="50px"
                 />
               </FormControl>
             </Stack>
 
             <FormControl isRequired>
-              <FormLabel fontWeight="bold" color="gray.700" mb={2} fontSize={{ base: "sm", md: "md" }}>
+              <FormLabel fontWeight="600" color="gray.700" fontSize="sm">
                 Descrição Detalhada
               </FormLabel>
               <Textarea
-                placeholder="Descreva detalhadamente o que foi realizado..."
+                placeholder="Descreva aqui o que aprendeu ou realizou hoje..."
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                size={{ base: "md", md: "lg" }}
-                borderRadius="lg"
-                rows={{ base: 5, md: 8 }} // Menos linhas no mobile para não ocupar o ecrã todo
-                focusBorderColor="teal.400"
-                bg={useColorModeValue("gray.50", "gray.800")}
+                borderRadius="xl"
+                rows={{ base: 6, md: 8 }}
+                focusBorderColor="teal.500"
+                bg={inputBg}
                 lineHeight="tall"
+                p={4}
               />
             </FormControl>
 
@@ -213,26 +228,27 @@ function Diario() {
               <Button
                 type="submit"
                 colorScheme="teal"
-                size={{ base: "lg", md: "xl" }}
+                size="lg"
                 w="full"
-                h={{ base: "50px", md: "60px" }} // Altura adaptável
-                fontSize={{ base: "md", md: "lg" }}
-                leftIcon={id ? <FaEdit /> : <FaSave />}
-                shadow="xl"
-                borderRadius="xl"
-                _hover={{ transform: "translateY(-2px)", boxShadow: "2xl" }}
-                _active={{ transform: "scale(0.98)" }}
+                h="56px"
+                fontSize="md"
+                isLoading={issubmitting}
+                loadingText="A gravar..."
+                leftIcon={id ? <FaSave /> : <FaPlus />}
+                shadow="lg"
+                borderRadius="full"
+                _hover={{ transform: "translateY(-2px)", boxShadow: "xl" }}
                 transition="all 0.2s"
               >
-                {id ? "Guardar Alterações" : "Finalizar Registro"}
+                {id ? "Guardar Alterações" : "Finalizar Registo"}
               </Button>
             </Box>
           </Stack>
         </form>
       </Box>
 
-      <Text mt={6} textAlign="center" fontSize="xs" color="gray.400">
-        Os seus dados são salvos de forma segura na plataforma.
+      <Text mt={8} textAlign="center" fontSize="xs" color="gray.400" fontWeight="medium">
+        DIÁRIO DE BORDO &bull; {new Date().getFullYear()}
       </Text>
     </Container>
   );
