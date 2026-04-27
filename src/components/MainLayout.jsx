@@ -1,7 +1,7 @@
 import { Box } from "@chakra-ui/react";
 import { useState } from "react";
-import Navbar from "./Navbar";
-import Topbar from "./Topbar";
+import Navbar from "./NavBar";
+import Topbar from "./TopBar";
 
 function MainLayout({ children }) {
   // O estado que controla se a barra lateral está encolhida ou expandida
