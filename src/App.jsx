@@ -4,6 +4,7 @@ import { Routes, Route, BrowserRouter, useLocation } from "react-router-dom";
 
 // 1. IMPORTAÇÃO DOS TEUS COMPONENTES (Verifica se os caminhos estão corretos)
 import Navbar from "./components/NavBar";
+import Topbar from "./components/TopBar";
 import Diario from "./diarioFormulario/diario";
 import DiarioList from "./diarioFormulario/diarioList";
 import MinhaConta from "./minhaConta/minhaConta";
@@ -28,17 +29,18 @@ function AppContent() {
   // Se NÃO for login, renderizamos a "moldura" (Software Look)
   return (
     <Box minH="100vh" w="100%" bg="gray.50">
+      <Topbar />
       <Navbar />
-      
-        
-          <Routes>
-            {/* Rotas Protegidas */}
-            <Route path="/novoDiario" element={<ProtectedRoute><Diario /></ProtectedRoute>} />
-            <Route path="/diarios" element={<ProtectedRoute><DiarioList /></ProtectedRoute>} />
-            <Route path="/editarDiario/:id" element={<ProtectedRoute><Diario /></ProtectedRoute>} />
-            <Route path="/minha-conta" element={<ProtectedRoute><MinhaConta /></ProtectedRoute>} />
-            <Route path="/formacao" element={<ProtectedRoute><FormacaoList /></ProtectedRoute>} />
-          </Routes>
+
+
+      <Routes>
+        {/* Rotas Protegidas */}
+        <Route path="/novoDiario" element={<ProtectedRoute><Diario /></ProtectedRoute>} />
+        <Route path="/diarios" element={<ProtectedRoute><DiarioList /></ProtectedRoute>} />
+        <Route path="/editarDiario/:id" element={<ProtectedRoute><Diario /></ProtectedRoute>} />
+        <Route path="/minha-conta" element={<ProtectedRoute><MinhaConta /></ProtectedRoute>} />
+        <Route path="/formacao" element={<ProtectedRoute><FormacaoList /></ProtectedRoute>} />
+      </Routes>
     </Box>
   );
 }
