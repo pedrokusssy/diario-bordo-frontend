@@ -108,7 +108,7 @@ function DiarioList() {
                 <Tr shadow="sm">
                   <Th w="130px">Data</Th>
                   <Th w="220px">Atividade</Th>
-                  <Th>Descrição (Oversize)</Th>
+                  <Th>Descrição</Th>
                   <Th w="120px" textAlign="center">Ações</Th>
                 </Tr>
               </Thead>
@@ -121,15 +121,43 @@ function DiarioList() {
                         {diario.actividade.actividade}
                       </Badge>
                     </Td>
-                    <Td verticalAlign="top" p={2}>
-                      <Box
-                        maxH="80px" overflowY="auto" whiteSpace="pre-wrap" wordBreak="break-word" fontSize="sm" color="gray.600"
-                        cursor="pointer" onClick={() => handleOpenDetails(diario)} pr={2}
-                        sx={{ "&::-webkit-scrollbar": { width: "3px" }, "&::-webkit-scrollbar-thumb": { background: "gray.200", borderRadius: "10px" } }}
-                      >
-                        {formatDescricao(diario.descricao)}
-                      </Box>
-                    </Td>
+                   {/* CÉLULA DA DESCRIÇÃO PADRÃO SAAS PROFISSIONAL */}
+<Td verticalAlign="top" py={4}>
+  <Box 
+    onClick={() => handleOpenDetails(diario)} 
+    cursor="pointer" 
+    role="group" /* Agrupa o hover para aplicar a filhos */
+  >
+    <Text
+      noOfLines={3} /* A MAGIA: Bloqueia exatamente em 3 linhas */
+      fontSize="sm"
+      color="gray.600"
+      lineHeight="tall"
+      whiteSpace="normal" /* Permite a quebra de linha natural */
+      transition="all 0.2s"
+      _groupHover={{ color: "gray.800" }} /* Fica mais escuro ao passar o rato */
+    >
+      {/* Já não precisas da função truncarTexto aqui, o Chakra faz a matemática perfeita! */}
+      {diario.descricao}
+    </Text>
+    
+    {/* Dica visual elegante para textos longos (só aparece se o texto for grande) */}
+    {diario.descricao?.length > 120 && (
+      <Text 
+        fontSize="xs" 
+        fontWeight="bold" 
+        color="teal.500" 
+        mt={1} 
+        opacity={0} 
+        transform="translateY(-5px)"
+        _groupHover={{ opacity: 1, transform: "translateY(0)" }}
+        transition="all 0.2s ease-out"
+      >
+        Ler relatório completo &rarr;
+      </Text>
+    )}
+  </Box>
+</Td>
                     <Td verticalAlign="top">
                       <HStack justify="center" spacing={1}>
                         <IconButton aria-label="Ver" icon={<FaEye />} size="sm" variant="ghost" colorScheme="teal" onClick={() => handleOpenDetails(diario)} />
