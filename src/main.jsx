@@ -6,8 +6,8 @@ import { Routes, Route, BrowserRouter } from "react-router-dom";
 import { ChakraProvider } from "@chakra-ui/react";
 
 import App from "./App";
-import diarioList from "./diarioFormulario/diarioList"; // Nota: está importado, mas não está sendo usado no código abaixo
-import Diario from "./diarioFormulario/diario";
+import diarioList from "./pages/diarioList"; // Nota: está importado, mas não está sendo usado no código abaixo
+import Diario from "./pages/diario";
 import Navbar from "./components/NavBar";
 
 // 2. Importação dos componentes das páginas (ajuste o caminho se necessário)
