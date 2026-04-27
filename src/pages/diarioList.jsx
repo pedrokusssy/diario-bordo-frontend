@@ -90,13 +90,28 @@ function DiarioList() {
       <Box flexShrink={0} height={{ base: "80px", md: "110px", lg: "120px" }} />
 
       <Container maxW="container.xl" px={{ base: 4, md: 8 }} flex="1" display="flex" flexDirection="column" overflow="hidden" pb={6}>
-        
-        {/* HEADER */}
-        <Flex justify="space-between" align="center" mb={6} flexShrink={0}>
-          <Heading size="md" color="gray.600" fontWeight="700">Registos de atividades</Heading>
+
+        {/* HEADER SEM O TEXTO E COM BOTÕES À DIREITA */}
+        <Flex justify="flex-end" align="center" mb={6} flexShrink={0}>
           <HStack spacing={3}>
-            <Button leftIcon={<FaFilePdf />} colorScheme="orange" variant="outline" size="sm" onClick={handleExportPDF} isDisabled={diariosOrdenados.length === 0}>PDF</Button>
-            <Button leftIcon={<FaPlus />} colorScheme="teal" size="sm" onClick={() => navigate("/novoDiario")}>Novo</Button>
+            <Button
+              leftIcon={<FaFilePdf />}
+              colorScheme="orange"
+              variant="outline"
+              size="sm"
+              onClick={handleExportPDF}
+              isDisabled={diariosOrdenados.length === 0}
+            >
+              PDF
+            </Button>
+            <Button
+              leftIcon={<FaPlus />}
+              colorScheme="teal"
+              size="sm"
+              onClick={() => navigate("/novoDiario")}
+            >
+              Novo
+            </Button>
           </HStack>
         </Flex>
 
@@ -121,43 +136,43 @@ function DiarioList() {
                         {diario.actividade.actividade}
                       </Badge>
                     </Td>
-                   {/* CÉLULA DA DESCRIÇÃO PADRÃO SAAS PROFISSIONAL */}
-<Td verticalAlign="top" py={4}>
-  <Box 
-    onClick={() => handleOpenDetails(diario)} 
-    cursor="pointer" 
-    role="group" /* Agrupa o hover para aplicar a filhos */
-  >
-    <Text
-      noOfLines={3} /* A MAGIA: Bloqueia exatamente em 3 linhas */
-      fontSize="sm"
-      color="gray.600"
-      lineHeight="tall"
-      whiteSpace="normal" /* Permite a quebra de linha natural */
-      transition="all 0.2s"
-      _groupHover={{ color: "gray.800" }} /* Fica mais escuro ao passar o rato */
-    >
-      {/* Já não precisas da função truncarTexto aqui, o Chakra faz a matemática perfeita! */}
-      {diario.descricao}
-    </Text>
-    
-    {/* Dica visual elegante para textos longos (só aparece se o texto for grande) */}
-    {diario.descricao?.length > 120 && (
-      <Text 
-        fontSize="xs" 
-        fontWeight="bold" 
-        color="teal.500" 
-        mt={1} 
-        opacity={0} 
-        transform="translateY(-5px)"
-        _groupHover={{ opacity: 1, transform: "translateY(0)" }}
-        transition="all 0.2s ease-out"
-      >
-        Ler relatório completo &rarr;
-      </Text>
-    )}
-  </Box>
-</Td>
+                    {/* CÉLULA DA DESCRIÇÃO PADRÃO SAAS PROFISSIONAL */}
+                    <Td verticalAlign="top" py={4}>
+                      <Box
+                        onClick={() => handleOpenDetails(diario)}
+                        cursor="pointer"
+                        role="group" /* Agrupa o hover para aplicar a filhos */
+                      >
+                        <Text
+                          noOfLines={3} /* A MAGIA: Bloqueia exatamente em 3 linhas */
+                          fontSize="sm"
+                          color="gray.600"
+                          lineHeight="tall"
+                          whiteSpace="normal" /* Permite a quebra de linha natural */
+                          transition="all 0.2s"
+                          _groupHover={{ color: "gray.800" }} /* Fica mais escuro ao passar o rato */
+                        >
+                          {/* Já não precisas da função truncarTexto aqui, o Chakra faz a matemática perfeita! */}
+                          {diario.descricao}
+                        </Text>
+
+                        {/* Dica visual elegante para textos longos (só aparece se o texto for grande) */}
+                        {diario.descricao?.length > 120 && (
+                          <Text
+                            fontSize="xs"
+                            fontWeight="bold"
+                            color="teal.500"
+                            mt={1}
+                            opacity={0}
+                            transform="translateY(-5px)"
+                            _groupHover={{ opacity: 1, transform: "translateY(0)" }}
+                            transition="all 0.2s ease-out"
+                          >
+                            Ler relatório completo &rarr;
+                          </Text>
+                        )}
+                      </Box>
+                    </Td>
                     <Td verticalAlign="top">
                       <HStack justify="center" spacing={1}>
                         <IconButton aria-label="Ver" icon={<FaEye />} size="sm" variant="ghost" colorScheme="teal" onClick={() => handleOpenDetails(diario)} />
@@ -176,7 +191,7 @@ function DiarioList() {
         <Box flex="1" display={{ base: "flex", md: "none" }} flexDirection="column" overflowY="auto">
           <VStack spacing={4} align="stretch" pb={4}>
             {diariosOrdenados.map((diario) => (
-              <Box 
+              <Box
                 key={diario.id} bg={cardBg} p={4} borderRadius="xl" borderWidth="1px" borderColor={borderColor} shadow="sm"
                 onClick={() => handleOpenDetails(diario)}
               >
