@@ -6,44 +6,84 @@ import { DM_SERIF_BASE64 } from "../assets/DMSerifDisplayRegular";
 export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
   const doc = new jsPDF();
   
-  // 1. REGISTAR A FONTE (Usamos apenas 'normal' para evitar erro de falta de Bold)
+  // 1. REGISTAR A FONTE
   doc.addFileToVFS("DMSerifDisplay-Regular.ttf", DM_SERIF_BASE64);
   doc.addFont("DMSerifDisplay-Regular.ttf", "DMSerif", "normal");
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // 2. ORDENAÇÃO CRONOLÓGICA (Mais antiga -> Mais recente)
-  // Criamos uma cópia para não afetar o estado original da aplicação
+  // 2. ORDENAÇÃO CRONOLÓGICA
   const atividadesOrdenadas = [...listaAtividades].sort((a, b) => {
-    // Converte a string de data (DD/MM/YYYY) para um objeto Date comparável
     const [diaA, mesA, anoA] = a.data.split('/');
     const [diaB, mesB, anoB] = b.data.split('/');
     return new Date(anoA, mesA - 1, diaA) - new Date(anoB, mesB - 1, diaB);
   });
 
-  // 3. LÓGICA DE DISTRIBUIÇÃO POR SLOTS (MAX 5 POR PÁGINA)
+  // --- LÓGICA DE SLOTS DINÂMICOS ---
+  const CHARS_POR_SLOT = 300; // Cada slot visual aguenta ~300 caracteres
+  const MAX_SLOTS_PAGINA = 5; // A folha suporta no máximo 5 slots
   const paginasDeAtividades = [];
   let paginaAtual = [];
   let slotsUsados = 0;
 
   atividadesOrdenadas.forEach((act) => {
-    const peso = (act.descricao && act.descricao.length > 200) ? 2 : 1;
+    let textoPendente = act.descricao || "";
+    let isFirstChunk = true;
 
-    if (slotsUsados + peso > 5) {
-      while (slotsUsados < 5) {
-        paginaAtual.push({ data: '', atividade: '', descricao: '', peso: 1 });
-        slotsUsados++;
+    // O loop garante que atividades gigantes são processadas,
+    // e executa pelo menos uma vez mesmo que a descrição seja vazia
+    do {
+      let slotsDisponiveis = MAX_SLOTS_PAGINA - slotsUsados;
+      
+      // Se a folha já está cheia, guardamos e passamos para uma nova
+      if (slotsDisponiveis === 0) {
+        paginasDeAtividades.push(paginaAtual);
+        paginaAtual = [];
+        slotsUsados = 0;
+        slotsDisponiveis = MAX_SLOTS_PAGINA;
       }
-      paginasDeAtividades.push(paginaAtual);
-      paginaAtual = [];
-      slotsUsados = 0;
-    }
-    paginaAtual.push({ ...act, peso });
-    slotsUsados += peso;
+
+      // Quantos slots (1 a 5) este pedaço de texto vai precisar?
+      let slotsNecessarios = Math.max(1, Math.ceil(textoPendente.length / CHARS_POR_SLOT));
+
+      if (slotsNecessarios <= slotsDisponiveis) {
+        // O texto cabe inteiramente no espaço que sobra na página atual!
+        paginaAtual.push({
+          data: isFirstChunk ? act.data : "",
+          atividade: isFirstChunk ? act.atividade : "(Cont.) " + act.atividade,
+          descricao: textoPendente,
+          peso: slotsNecessarios // Pode ser 1, 2, 3, 4 ou 5
+        });
+        slotsUsados += slotsNecessarios;
+        textoPendente = ""; // Terminámos esta atividade
+      } else {
+        // O texto NÃO cabe no espaço restante. Temos de o cortar para a próxima página.
+        let charsQueCabem = slotsDisponiveis * CHARS_POR_SLOT;
+        let chunk = textoPendente.substring(0, charsQueCabem);
+
+        // Tentar não cortar palavras ao meio
+        const ultimoEspaco = chunk.lastIndexOf(" ");
+        if (ultimoEspaco > charsQueCabem * 0.85) {
+          chunk = chunk.substring(0, ultimoEspaco);
+        }
+
+        paginaAtual.push({
+          data: isFirstChunk ? act.data : "",
+          atividade: isFirstChunk ? act.atividade : "(Cont.) " + act.atividade,
+          descricao: chunk.trim(),
+          peso: slotsDisponiveis // Ocupa exatamente o que sobra na folha
+        });
+
+        slotsUsados += slotsDisponiveis; // Enche a página (vai forçar quebra no próximo ciclo)
+        textoPendente = textoPendente.substring(chunk.length).trim();
+        isFirstChunk = false;
+      }
+    } while (textoPendente.length > 0);
   });
 
-  while (slotsUsados < 5 && slotsUsados > 0) {
+  // Preencher com linhas vazias se a última página não estiver cheia (para o layout não quebrar)
+  while (slotsUsados < MAX_SLOTS_PAGINA && slotsUsados > 0) {
     paginaAtual.push({ data: '', atividade: '', descricao: '', peso: 1 });
     slotsUsados++;
   }
@@ -63,14 +103,12 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
 
     doc.addImage(ENSINAR_SAUDE_LOGO, 'PNG', 3, 10, 60, 50);
 
-    // Título Principal
     doc.setFont("DMSerif", "normal");
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
     doc.text("DIÁRIO DE BORDO – FORMAÇÃO ESPECIALIZADA", pageWidth / 2, 62, { align: "center" });
 
-    // 4. TABELA DE IDENTIFICAÇÃO (Rótulos em DM Serif, Dados em Helvetica)
-   autoTable(doc, {
+    autoTable(doc, {
       startY: 68,
       theme: 'grid',
       styles: { fontSize: 8, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.3 },
@@ -90,31 +128,24 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
         [{ content: 'LOCAL FORMAÇÃO' }, { content: dadosFormacao.local || '', colSpan: 2 }],
         [{ content: 'UNIDADE' }, { content: dadosFormacao.unidade || '', colSpan: 2 }],
       ],
-      // Colunas: 30 + 55 + 75 = 160 (Perfeito para A4 com margens 25)
       columnStyles: { 0: { cellWidth: 30 }, 1: { cellWidth: 55 }, 2: { cellWidth: 75 } },
       margin: { left: 25, right: 25 },
       didParseCell: function (data) {
         if (data.section === 'body') {
-          
-          // ALTERAÇÃO APENAS AQUI: Removida a regra do includes(':')
           if (data.column.index === 0) { 
-            
             data.cell.styles.font = "DMSerif";
-            data.cell.styles.fontStyle = "normal"; // Evita erro de bold
+            data.cell.styles.fontStyle = "normal";
             data.cell.styles.fontSize = 8.5;
             data.cell.styles.textColor = [0, 0, 0];
           } else {
-            // O Hospital e o Horário (Coluna 2) agora caem aqui, como texto normal
             data.cell.styles.font = "helvetica";
             data.cell.styles.fontSize = 9;
             data.cell.styles.textColor = [60, 60, 60];
           }
         }
       }
-});
-    
+    });
 
-    // Rodapé
     const footerY = pageHeight - 20;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -139,7 +170,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
       styles: {
         font: "helvetica", 
         fontSize: 8.3,
-        minCellHeight: 23,
+        minCellHeight: 23, // Altura base de 1 slot
         valign: 'middle',
         lineColor: [0, 0, 0],
         lineWidth: 0.1,
@@ -147,7 +178,7 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
       },
       headStyles: {
         font: "DMSerif",
-        fontStyle: "normal", // CORREÇÃO: Força normal para não dar erro de Bold
+        fontStyle: "normal", 
         fontSize: 10,
         fillColor: [210, 210, 210],
         textColor: [0, 0, 0],
@@ -155,7 +186,6 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
         minCellHeight: 10,
         cellPadding: 1.5
       },
-      // CORREÇÃO LARGURA: 25+35+75+25 = 160 (Antes somava 162, o que causava o erro de "fit page")
       columnStyles: {
         0: { cellWidth: 25, halign: "center" },
         1: { cellWidth: 35, halign: "center" },
@@ -167,22 +197,17 @@ export const gerarDiarioBordoPDF = (dadosFormacao, listaAtividades) => {
         if (data.section === 'body') {
           const rowIndex = data.row.index;
           const item = atividadesDaPagina[rowIndex];
-          if (item && item.peso === 2) {
-            data.row.height = 46;
+          
+          // O SEGREDO DO LAYOUT: Multiplicamos a altura pelo "peso" do slot!
+          if (item && item.peso > 1) {
+            data.cell.styles.minCellHeight = item.peso * 23; 
           }
         }
       }
     });
   });
-  
-  // doc.save("Diario_Bordo_Final.pdf");
 
-  // Gera o PDF como um "Blob" (um ficheiro em memória)
   const pdfBlob = doc.output('blob');
-  
-  // Cria um URL temporário para esse ficheiro
   const blobUrl = URL.createObjectURL(pdfBlob);
-  
-  // Abre o PDF num novo separador do browser
   window.open(blobUrl, '_blank');
 };
