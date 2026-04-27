@@ -4,17 +4,8 @@ import {
   VStack,
   Link as ChakraLink,
   IconButton,
-  useDisclosure,
   Text,
   Tooltip,
-  HStack,
-  Badge,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  MenuDivider,
-  Avatar,
   Drawer,
   DrawerBody,
   DrawerHeader,
@@ -22,66 +13,46 @@ import {
   DrawerContent,
   DrawerCloseButton,
 } from "@chakra-ui/react";
-import { Link as ReactRouterLink, useNavigate } from "react-router-dom";
-import { HamburgerIcon, ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
-import { FaBook, FaGraduationCap, FaBell, FaUserAlt, FaSignOutAlt } from "react-icons/fa";
-import { useState } from "react";
+import { Link as ReactRouterLink, useLocation } from "react-router-dom";
+import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import { FaBook, FaGraduationCap } from "react-icons/fa";
 
-function Navbar() {
-  // Agora usamos onOpen e onClose para a Gaveta (Drawer)
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const navigate = useNavigate();
+function Navbar({ isCollapsed, setIsCollapsed, navWidth, isOpen, onClose }) {
+  const location = useLocation();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("isLogged");
-    navigate("/");
-  };
+  console.log("A função chegou à Navbar?", typeof setIsCollapsed);
 
   return (
     <>
-      {/* BARRA PRINCIPAL */}
+      {/* --- SIDEBAR DESKTOP (Aparece apenas em md+) --- */}
       <Box
-        bg="teal.600"
-        color="white"
+        as="nav"
+        display={{ base: "none", md: "block" }}
         position="fixed"
         left={0}
         top={0}
+        h="100vh"
+        bg="teal.600"
+        w={navWidth}
+        transition="width 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         zIndex={1100}
-        boxShadow="xl"
-        w={{ base: "100%", md: isCollapsed ? "80px" : "240px" }}
-        h={{ base: "auto", md: "100vh" }}
-        transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+        boxShadow="2xl"
       >
         <Flex
-          direction={{ base: "row", md: "column" }}
+          direction="column"
           h="full"
-          px={{ base: 4, md: isCollapsed ? 2 : 6 }}
-          py={{ base: 3, md: 8 }}
-          align={{ base: "center", md: isCollapsed ? "center" : "stretch" }}
-          justify={{ base: "space-between", md: "flex-start" }}
+          px={isCollapsed ? 2 : 6}
+          py={8}
+          align={isCollapsed ? "center" : "stretch"}
           position="relative"
         >
-          
-          {/* --- MOBILE: BOTÃO HAMBÚRGUER --- */}
-          <IconButton
-            display={{ base: "flex", md: "none" }}
-            onClick={onOpen} // Abre a gaveta
-            icon={<HamburgerIcon />}
-            variant="ghost"
-            colorScheme="whiteAlpha"
-            fontSize="20px"
-            aria-label="Abrir Menu"
-          />
-
-          {/* BOTÃO RECOLHER/EXPANDIR (Apenas PC) */}
+          {/* Botão de Toggle (Chevron) */}
           <IconButton
             display={{ base: "none", md: "flex" }}
             icon={isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
             size="xs"
             position="absolute"
-            right="-12px" 
+            right="-12px" // Garante que ele fica na borda
             top="32px"
             borderRadius="full"
             bg="teal.500"
@@ -89,111 +60,61 @@ function Navbar() {
             boxShadow="lg"
             border="2px solid"
             borderColor="teal.600"
-            _hover={{ bg: "teal.400" }}
-            onClick={() => setIsCollapsed(!isCollapsed)}
+
+            // 1. Z-INDEX ALTÍSSIMO para garantir que o clique é detetado
+            zIndex={9999}
+
+            // 2. Teste de clique forçado
+            onClick={(e) => {
+              e.stopPropagation(); // Impede que o clique "fuja" para outros elementos
+              console.log("BOTÃO CLICADO! Valor atual:", isCollapsed);
+              setIsCollapsed(!isCollapsed);
+            }}
+
             aria-label="Toggle Sidebar"
-            zIndex={1200}
+            _hover={{ bg: "teal.400" }}
           />
 
-          {/* LOGO (Escondido no Mobile, Visível no PC) */}
-          <Box 
-            display={{ base: "none", md: "block" }} 
-            fontWeight="900" 
-            lineHeight="1.1"
-            textAlign={isCollapsed ? "center" : "left"}
-            mb={{ base: 0, md: 12 }}
-            px={isCollapsed ? 0 : 2}
-            transition="all 0.3s"
-          >
+          {/* Logo / Nome */}
+          <Box mb={12} textAlign={isCollapsed ? "center" : "left"} overflow="hidden">
             {isCollapsed ? (
-              <Text fontSize="xl" color="teal.200">D.B.</Text>
+              <Text fontSize="xl" fontWeight="900" color="white">D.B.</Text>
             ) : (
-              <Box fontSize="22px" letterSpacing="wider">
-                <Text>DIÁRIO</Text>
-                <Text color="teal.200">DE BORDO</Text>
+              <Box lineHeight="1.1" whiteSpace="nowrap">
+                <Text color="white" fontWeight="900" fontSize="20px">DIÁRIO</Text>
+                <Text color="teal.200" fontWeight="900" fontSize="20px">DE BORDO</Text>
               </Box>
             )}
           </Box>
 
-          {/* --- MENU DESKTOP --- */}
-          <VStack
-            display={{ base: "none", md: "flex" }}
-            spacing={2} 
-            align={isCollapsed ? "center" : "stretch"}
-            flex="1"
-            overflow="hidden"
-          >
-            <NavLink to="/diarios" icon={<FaBook />} isCollapsed={isCollapsed}>Diários</NavLink>
-            <NavLink to="/formacao" icon={<FaGraduationCap />} isCollapsed={isCollapsed}>Formação</NavLink>
+          {/* Links de Navegação */}
+          <VStack spacing={2} align={isCollapsed ? "center" : "stretch"} flex="1">
+            <NavLink to="/diarios" icon={<FaBook />} isCollapsed={isCollapsed} isActive={location.pathname === "/diarios"}>
+              Diários
+            </NavLink>
+            <NavLink to="/formacao" icon={<FaGraduationCap />} isCollapsed={isCollapsed} isActive={location.pathname === "/formacao"}>
+              Formação
+            </NavLink>
           </VStack>
-
-          {/* --- MOBILE: NOTIFICAÇÕES E AVATAR --- */}
-          <HStack display={{ base: "flex", md: "none" }} spacing={2}>
-            
-            {/* Sino Notificações */}
-            <Box position="relative">
-              <IconButton
-                icon={<FaBell />}
-                variant="ghost"
-                colorScheme="whiteAlpha"
-                fontSize="20px"
-                borderRadius="full"
-                aria-label="Notificações"
-              />
-              <Badge
-                position="absolute"
-                top="8px"
-                right="8px"
-                bg="red.500"
-                boxSize="10px"
-                borderRadius="full"
-                border="2px solid"
-                borderColor="teal.600"
-              />
-            </Box>
-
-            {/* Menu Utilizador (Avatar) */}
-            <Menu>
-              <MenuButton borderRadius="full">
-                <Avatar 
-                  size="sm" 
-                  bg="white" 
-                  color="teal.600"
-                  icon={<FaUserAlt fontSize="0.9rem" />} 
-                />
-              </MenuButton>
-              <MenuList shadow="xl" border="none" borderRadius="xl" color="gray.800">
-                <MenuItem icon={<FaUserAlt />} onClick={() => navigate("/minha-conta")} fontWeight="medium">
-                  Minha Conta
-                </MenuItem>
-                <MenuDivider />
-                <MenuItem icon={<FaSignOutAlt />} color="red.500" onClick={handleLogout} fontWeight="medium">
-                  Terminar Sessão
-                </MenuItem>
-              </MenuList>
-            </Menu>
-          </HStack>
         </Flex>
       </Box>
 
-      {/* --- MENU MOBILE (DRAWER - DESLIZA DA ESQUERDA) --- */}
+      {/* --- DRAWER MOBILE (Menu deslizante) --- */}
       <Drawer placement="left" onClose={onClose} isOpen={isOpen}>
         <DrawerOverlay />
         <DrawerContent bg="teal.700" color="white">
-          <DrawerCloseButton mt={1} />
-          
-          <DrawerHeader borderBottomWidth="1px" borderColor="teal.600" pt={5}>
-            <Box fontSize="20px" fontWeight="900" letterSpacing="wider">
-              <Text display="inline">DIÁRIO </Text>
-              <Text display="inline" color="teal.200">DE BORDO</Text>
-            </Box>
+          <DrawerCloseButton mt={2} />
+          <DrawerHeader borderBottomWidth="1px" borderColor="teal.600" pt={8}>
+            <Text fontWeight="900">DIÁRIO DE BORDO</Text>
           </DrawerHeader>
-
           <DrawerBody pt={6}>
-            <VStack spacing={3} align="stretch">
-              {/* Passamos o onClose para fechar a gaveta quando se clica num link! */}
-              <NavLink to="/diarios" icon={<FaBook />} onClick={onClose}>Diários</NavLink>
-              <NavLink to="/formacao" icon={<FaGraduationCap />} onClick={onClose}>Formação</NavLink>
+            <VStack spacing={4} align="stretch">
+              <NavLink to="/diarios" icon={<FaBook />} onClick={onClose} isCollapsed={false} isActive={location.pathname === "/diarios"}>
+                Diários
+              </NavLink>
+              <NavLink to="/formacao" icon={<FaGraduationCap />} onClick={onClose} isCollapsed={false} isActive={location.pathname === "/formacao"}>
+                Formação
+              </NavLink>
             </VStack>
           </DrawerBody>
         </DrawerContent>
@@ -202,27 +123,26 @@ function Navbar() {
   );
 }
 
-// Atualizamos o NavLink para aceitar a função onClick
-function NavLink({ to, children, icon, isCollapsed, onClick }) {
+// Componente Auxiliar para Links
+function NavLink({ to, children, icon, isCollapsed, onClick, isActive }) {
   return (
-    <Tooltip label={children} isDisabled={!isCollapsed} placement="right">
+    <Tooltip label={children} isDisabled={!isCollapsed} placement="right" hasArrow>
       <ChakraLink
         as={ReactRouterLink}
         to={to}
-        onClick={onClick} // Fecha o menu mobile ao clicar
+        onClick={onClick}
         p={3}
-        borderRadius="lg"
+        borderRadius="xl"
         display="flex"
         alignItems="center"
-        justifyContent={isCollapsed ? "center" : "flex-start"}
         transition="all 0.2s"
-        fontWeight="light" 
-        _activeLink={{ bg: "teal.500", textDecoration: "none" }} 
-        _hover={{ textDecoration: "none", bg: "teal.500" }}
+        bg={isActive ? "teal.500" : "transparent"}
+        color="white"
+        _hover={{ textDecoration: "none", bg: "teal.500", transform: "translateX(4px)" }}
       >
         <Box fontSize="20px">{icon}</Box>
         {!isCollapsed && (
-          <Text ml={3} fontSize="md" whiteSpace="nowrap">
+          <Text ml={3} fontSize="md" fontWeight="medium" whiteSpace="nowrap">
             {children}
           </Text>
         )}
