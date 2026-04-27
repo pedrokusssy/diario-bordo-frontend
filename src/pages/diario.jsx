@@ -1,51 +1,43 @@
 import {
-  Box,
-  Select,
-  FormControl,
-  Textarea,
-  Input,
-  FormLabel,
-  Stack,
-  Button,
-  useToast,
-  Heading,
-  Icon,
-  Flex,
-  useColorModeValue,
-  Text,
-  Center,
-  Spinner,
-  Container,
-  Divider,
-  VStack,
-  HStack,
-  Badge
+  Box, FormControl, Textarea, Input, FormLabel, Stack, Button, useToast,
+  Heading, Icon, Flex, useColorModeValue, Text, Center, Spinner,
+  HStack, Avatar, SlideFade, Menu, MenuButton, MenuList, MenuItem 
 } from "@chakra-ui/react";
-
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FaBook, FaCalendarAlt, FaTasks, FaSave, FaEdit, FaArrowLeft, FaPlus } from "react-icons/fa";
+import { FaArrowLeft, FaCheck, FaChevronDown } from "react-icons/fa";
+import { MdModeEditOutline } from "react-icons/md";
+
+import DatePicker, { registerLocale } from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { pt } from "date-fns/locale";
 
 import { useAppGlobal } from "../contexts/DiarioContext"; 
 import { createDiario, getDiarioById, updateDiario } from "../services/api";
+
+registerLocale("pt", pt);
 
 function Diario() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-
   const { atividades, usuario, loading } = useAppGlobal();
 
+  // 1. TODOS OS HOOKS DE CORES NO TOPO (A CORREÇÃO ESTÁ AQUI)
   const bg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const secondaryTextColor = useColorModeValue("gray.500", "gray.400");
-  const inputBg = useColorModeValue("gray.50", "gray.900");
+  const inputBg = useColorModeValue("gray.50", "whiteAlpha.50");
+  const inputBorder = useColorModeValue("gray.100", "gray.700");
+  const cardBorder = useColorModeValue("gray.200", "gray.700");
+  const iconBg = useColorModeValue("teal.50", "teal.900");
+  const headingColor = useColorModeValue("gray.800", "white");
 
   const [actividadeId, setActividadeId] = useState("");
-  const [dataActividade, setDataActividade] = useState("");
+  const [dataActividade, setDataActividade] = useState(new Date()); 
   const [descricao, setDescricao] = useState("");
   const [buscandoDados, setBuscandoDados] = useState(false);
   const [issubmitting, setIsSubmitting] = useState(false);
+
+  const actividadeSelecionada = atividades.find(act => act.id === actividadeId);
 
   useEffect(() => {
     if (id) {
@@ -54,11 +46,13 @@ function Diario() {
         .then(response => {
           const dados = response.data;
           setActividadeId(dados.actividade.id);
-          setDataActividade(dados.dataActividade);
+          if (dados.dataActividade) {
+            setDataActividade(new Date(dados.dataActividade));
+          }
           setDescricao(dados.descricao);
         })
-        .catch(err => {
-          toast({ title: "Erro", description: "Não foi possível carregar os dados.", status: "error" });
+        .catch(() => {
+          toast({ title: "Erro de Sincronização", description: "Não conseguimos obter o registo.", status: "error" });
         })
         .finally(() => setBuscandoDados(false));
     }
@@ -69,188 +63,244 @@ function Diario() {
     setIsSubmitting(true);
 
     if (!actividadeId || !dataActividade || !descricao) {
-      toast({ title: "Campos obrigatórios", description: "Por favor, preencha todos os campos.", status: "warning", variant: "subtle" });
+      toast({ title: "Atenção", description: "Preencha os detalhes da atividade antes de guardar.", status: "warning", variant: "subtle" });
       setIsSubmitting(false);
       return;
     }
 
+    const dataFormatadaParaAPI = dataActividade.toISOString().split('T')[0];
+
     const dadosDoDiario = {
       formando_id: localStorage.getItem("pessoaId"), 
       actividade_id: actividadeId,
-      dataActividade: dataActividade,
+      dataActividade: dataFormatadaParaAPI,
       descricao: descricao,
     };
 
     try {
       if (id) {
         await updateDiario(id, dadosDoDiario);
-        toast({ title: "Sucesso!", description: "Registo atualizado com sucesso.", status: "success", variant: "left-accent" });
+        toast({ title: "Guardado", status: "success", variant: "subtle" });
       } else {
         await createDiario(dadosDoDiario);
-        toast({ title: "Sucesso!", description: "Novo registo criado com sucesso.", status: "success", variant: "left-accent" });
+        toast({ title: "Registo Criado", status: "success", variant: "subtle" });
       }
       navigate("/diarios");
     } catch (error) {
-      toast({ title: "Erro", description: "Ocorreu um erro ao salvar os dados.", status: "error" });
+      toast({ title: "Erro de Rede", description: "Tente novamente mais tarde.", status: "error" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // 2. O EARLY RETURN SÓ ACONTECE DEPOIS DE TODOS OS HOOKS ACIMA
   if (loading || buscandoDados) {
     return (
       <Center h="70vh">
-        <VStack spacing={4}>
-          <Spinner size="xl" color="teal.500" thickness="4px" speed="0.65s" />
-          <Text color="gray.500" fontWeight="medium">A preparar o seu diário...</Text>
-        </VStack>
+        <Stack spacing={6} align="center">
+          <Spinner size="xl" color="teal.500" thickness="3px" emptyColor="gray.100" speed="0.8s" />
+          <Text color="gray.500" fontSize="sm" fontWeight="medium" letterSpacing="widest" textTransform="uppercase">
+            A carregar...
+          </Text>
+        </Stack>
       </Center>
     );
   }
 
   return (
-    <Container maxW="container.md" py={{ base: 2, md: 6 }}>
+    <Box w="100%" py={{ base: 6, md: 10 }} px={{ base: 4, md: 8 }}>
       
       <Button 
         leftIcon={<FaArrowLeft />} 
         variant="ghost" 
-        mb={4} 
-        colorScheme="teal" 
+        mb={8} 
+        colorScheme="gray" 
+        color="gray.500"
         size="sm"
         borderRadius="full"
         onClick={() => navigate("/diarios")}
-        _hover={{ bg: "teal.50", color: "teal.600" }}
+        _hover={{ bg: "gray.100", color: "gray.800" }}
+        transition="all 0.2s ease"
       >
-        Voltar para a lista
+        Voltar à lista
       </Button>
 
-      <Box
-        bg={bg}
-        p={{ base: 6, md: 10 }}
-        borderRadius="24px"
-        borderWidth="1px"
-        borderColor={borderColor}
-        boxShadow="0 10px 30px rgba(0,0,0,0.05)"
-        position="relative"
-        transition="all 0.3s"
-      >
-        <Box position="absolute" top={0} left={0} right={0} h="6px" bg="teal.500" borderTopRadius="24px" />
+      <SlideFade in={true} offsetY="20px">
+        <Box
+          w="100%"
+          bg={bg}
+          p={{ base: 6, md: 12 }}
+          borderRadius="3xl"
+          borderWidth="1px"
+          borderColor={cardBorder}
+          boxShadow="0 10px 40px -10px rgba(0,0,0,0.08)"
+          position="relative"
+        >
+          <Flex align="center" mb={10} justify="space-between" wrap="wrap" gap={4}>
+            <HStack spacing={5}>
+              <Center w={12} h={12} bg={iconBg} borderRadius="full">
+                <Icon as={MdModeEditOutline} w={6} h={6} color="teal.600" />
+              </Center>
+              <Box>
+                <Heading size="lg" color={headingColor} fontWeight="normal" letterSpacing="tight">
+                  {id ? "Editar Atividade" : "Nova Atividade"}
+                </Heading>
+              </Box>
+            </HStack>
 
-        <Flex align="center" mb={8} justify="space-between">
-          <HStack spacing={4}>
-            <Center 
-              w={12} 
-              h={12} 
-              bg="teal.50" 
-              borderRadius="16px" 
-              flexShrink={0}
-            >
-              <Icon as={id ? FaEdit : FaBook} w={6} h={6} color="teal.500" />
-            </Center>
-            <Box>
-              <Heading size="md" color="gray.800" fontWeight="700">
-                {id ? "Editar Registo" : "Novo Lançamento"}
-              </Heading>
-              <Text color={secondaryTextColor} fontSize="sm">
-                Formando: <Text as="span" fontWeight="bold" color="teal.600">{usuario?.nome}</Text>
+            <HStack bg={inputBg} px={3} py={1.5} borderRadius="full" borderWidth="1px" borderColor={inputBorder}>
+              <Avatar size="2xs" name={usuario?.nome} bg="teal.600" color="white" />
+              <Text fontSize="xs" fontWeight="bold" color="gray.600">
+                {usuario?.nome?.split(' ')[0]}
               </Text>
-            </Box>
-          </HStack>
-          
-          <Badge display={{ base: "none", sm: "block" }} colorScheme="teal" variant="subtle" px={3} borderRadius="full">
-            {usuario?.nome?.split(' ')[0]}
-          </Badge>
-        </Flex>
+            </HStack>
+          </Flex>
 
-        <Divider mb={8} />
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={8}>
+              
+              <Stack direction={{ base: "column", md: "row" }} spacing={6}>
+                
+                <FormControl isRequired>
+                  <FormLabel fontWeight="600" color="gray.600" fontSize="xs">
+                    ACTIVIDADE
+                  </FormLabel>
+                  <Menu matchWidth>
+                    <MenuButton
+                      as={Button}
+                      rightIcon={<FaChevronDown size={12} color="gray.400" />}
+                      w="100%"
+                      h="55px"
+                      bg={inputBg}
+                      border="1px solid"
+                      borderColor={inputBorder}
+                      borderRadius="xl"
+                      fontWeight="medium"
+                      textAlign="left"
+                      px={4}
+                      color={actividadeId ? "inherit" : "gray.500"}
+                      _hover={{ borderColor: "gray.300" }}
+                      _active={{ bg: inputBg }}
+                      _focus={{ borderColor: "teal.500", boxShadow: "0 0 0 1px #319795" }}
+                    >
+                      <Text noOfLines={1}>
+                        {actividadeSelecionada ? actividadeSelecionada.actividade : "Selecione a actividade"}
+                      </Text>
+                    </MenuButton>
+                    
+                    <MenuList 
+                      borderRadius="xl" 
+                      boxShadow="lg" 
+                      p={2} 
+                      border="1px solid" 
+                      borderColor="gray.100"
+                      zIndex={10}
+                    >
+                      {atividades.map((act) => (
+                        <MenuItem
+                          key={act.id}
+                          onClick={() => setActividadeId(act.id)}
+                          borderRadius="md"
+                          _hover={{ bg: "teal.50", color: "teal.700" }}
+                          bg={actividadeId === act.id ? "teal.50" : "transparent"}
+                          color={actividadeId === act.id ? "teal.700" : "inherit"}
+                          fontWeight={actividadeId === act.id ? "bold" : "medium"}
+                          py={2}
+                        >
+                          {act.actividade}
+                        </MenuItem>
+                      ))}
+                    </MenuList>
+                  </Menu>
+                </FormControl>
 
-        <form onSubmit={handleSubmit}>
-          <Stack spacing={6}>
-            
-            <Stack direction={{ base: "column", md: "row" }} spacing={6}>
+                <FormControl isRequired>
+                  <FormLabel fontWeight="600" color="gray.600" fontSize="xs">
+                    DATA DA ACTIVIDADE
+                  </FormLabel>
+                  <Box sx={{
+                    ".react-datepicker-wrapper": { width: "100%" },
+                    ".react-datepicker": { fontFamily: "inherit", border: "1px solid", borderColor: "gray.200", borderRadius: "lg", shadow: "lg" },
+                    ".react-datepicker__header": { bg: "white", borderBottom: "none" },
+                    ".react-datepicker__day--selected": { bg: "teal.500", borderRadius: "full" },
+                    ".react-datepicker__day:hover": { borderRadius: "full" },
+                    ".react-datepicker__day--keyboard-selected": { bg: "teal.400", borderRadius: "full" },
+                  }}>
+                    <DatePicker
+                      selected={dataActividade}
+                      onChange={(date) => setDataActividade(date)}
+                      locale="pt"
+                      dateFormat="dd/MM/yyyy"
+                      maxDate={new Date()}
+                      customInput={
+                        <Input
+                          focusBorderColor="teal.500"
+                          bg={inputBg}
+                          border="1px solid"
+                          borderColor={inputBorder}
+                          borderRadius="xl"
+                          h="55px"
+                          fontWeight="medium"
+                          _hover={{ borderColor: "gray.300" }}
+                          cursor="pointer"
+                        />
+                      }
+                    />
+                  </Box>
+                </FormControl>
+              </Stack>
+
               <FormControl isRequired>
-                <FormLabel fontWeight="600" color="gray.700" fontSize="sm">
-                  <Icon as={FaTasks} mr={2} color="teal.500" />
-                  Atividade Realizada
+                <FormLabel fontWeight="600" color="gray.600" fontSize="xs" mb={3}>
+                  DESCRIÇÃO DETALHADA
                 </FormLabel>
-                <Select
-                  placeholder="Selecione a atividade"
-                  value={actividadeId}
-                  onChange={(e) => setActividadeId(e.target.value)}
-                  focusBorderColor="teal.500"
-                  borderRadius="xl"
+                <Textarea
+                  placeholder="Escreva os detalhes da sua atividade ..."
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
                   bg={inputBg}
-                  h="50px"
-                >
-                  {atividades.map((act) => (
-                    <option value={act.id} key={act.id}>
-                      {act.actividade}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel fontWeight="600" color="gray.700" fontSize="sm">
-                  <Icon as={FaCalendarAlt} mr={2} color="teal.500" />
-                  Data do Registo
-                </FormLabel>
-                <Input
-                  type="date"
-                  value={dataActividade}
-                  onChange={(e) => setDataActividade(e.target.value)}
-                  focusBorderColor="teal.500"
+                  border="1px solid"
+                  borderColor={inputBorder}
                   borderRadius="xl"
-                  bg={inputBg}
-                  h="50px"
+                  rows={10}
+                  focusBorderColor="teal.500"
+                  _hover={{ borderColor: "gray.300" }}
+                  p={5}
+                  lineHeight="1.7"
+                  resize="vertical"
                 />
               </FormControl>
+
+              <Box pt={4}>
+                <Button
+                  type="submit"
+                  colorScheme="teal"
+                  size="lg"
+                  w={{ base: "full", md: "auto" }}
+                  px={8}
+                  h="50px"
+                  float={{ md: "right" }}
+                  fontSize="sm"
+                  fontWeight="bold"
+                  isLoading={issubmitting}
+                  loadingText="A guardar..."
+                  leftIcon={id ? <FaCheck /> : <MdModeEditOutline />}
+                  borderRadius="full"
+                  boxShadow="md"
+                  _hover={{ transform: "translateY(-1px)", boxShadow: "lg" }}
+                  _active={{ transform: "translateY(0)" }}
+                  transition="all 0.2s ease"
+                >
+                  {id ? "Atualizar" : "Guardar"}
+                </Button>
+                <Box clear="both" /> 
+              </Box>
             </Stack>
+          </form>
+        </Box>
+      </SlideFade>
 
-            <FormControl isRequired>
-              <FormLabel fontWeight="600" color="gray.700" fontSize="sm">
-                Descrição Detalhada
-              </FormLabel>
-              <Textarea
-                placeholder="Descreva aqui o que aprendeu ou realizou hoje..."
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                borderRadius="xl"
-                rows={{ base: 6, md: 8 }}
-                focusBorderColor="teal.500"
-                bg={inputBg}
-                lineHeight="tall"
-                p={4}
-              />
-            </FormControl>
-
-            <Box pt={4}>
-              <Button
-                type="submit"
-                colorScheme="teal"
-                size="lg"
-                w="full"
-                h="56px"
-                fontSize="md"
-                isLoading={issubmitting}
-                loadingText="A gravar..."
-                leftIcon={id ? <FaSave /> : <FaPlus />}
-                shadow="lg"
-                borderRadius="full"
-                _hover={{ transform: "translateY(-2px)", boxShadow: "xl" }}
-                transition="all 0.2s"
-              >
-                {id ? "Guardar Alterações" : "Finalizar Registo"}
-              </Button>
-            </Box>
-          </Stack>
-        </form>
-      </Box>
-
-      <Text mt={8} textAlign="center" fontSize="xs" color="gray.400" fontWeight="medium">
-        DIÁRIO DE BORDO &bull; {new Date().getFullYear()}
-      </Text>
-    </Container>
+    </Box>
   );
 }
 
