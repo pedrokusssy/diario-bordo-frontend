@@ -1,59 +1,40 @@
-import React from "react";
-import { Flex, Box, Center } from "@chakra-ui/react";
-import { Routes, Route, BrowserRouter, useLocation } from "react-router-dom";
+import { ChakraProvider } from "@chakra-ui/react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-// 1. IMPORTAÇÃO DOS TEUS COMPONENTES (Verifica se os caminhos estão corretos)
-import Navbar from "./components/NavBar";
-import Topbar from "./components/TopBar";
-import Diario from "./diarioFormulario/diario";
-import DiarioList from "./diarioFormulario/diarioList";
-import MinhaConta from "./minhaConta/minhaConta";
-import FormacaoList from "./formacao/formacao";
-import Login from "./login/login";
-import { ProtectedRoute } from "./ProtectedRoute";
-import { DiarioProvider } from "./contexts/DiarioContext";
-
-function AppContent() {
-  const location = useLocation();
-  const isLoginPage = location.pathname === "/";
-
-  // Se for a página de login, renderizamos apenas o Login sem a moldura do sistema
-  if (isLoginPage) {
-    return (
-      <Routes>
-        <Route path="/" element={<Login />} />
-      </Routes>
-    );
-  }
-
-  // Se NÃO for login, renderizamos a "moldura" (Software Look)
-  return (
-    <Box minH="100vh" w="100%" bg="gray.50">
-      <Topbar />
-      <Navbar />
-
-
-      <Routes>
-        {/* Rotas Protegidas */}
-        <Route path="/novoDiario" element={<ProtectedRoute><Diario /></ProtectedRoute>} />
-        <Route path="/diarios" element={<ProtectedRoute><DiarioList /></ProtectedRoute>} />
-        <Route path="/editarDiario/:id" element={<ProtectedRoute><Diario /></ProtectedRoute>} />
-        <Route path="/minha-conta" element={<ProtectedRoute><MinhaConta /></ProtectedRoute>} />
-        <Route path="/formacao" element={<ProtectedRoute><FormacaoList /></ProtectedRoute>} />
-      </Routes>
-    </Box>
-  );
-}
+// Importa o teu Layout e as tuas Páginas
+import MainLayout from "./components/MainLayout"; 
+import Login from "./pages/Login"; // (Ajusta os caminhos se necessário)
+import DiarioList from "./pages/DiarioList";
+// import Formacao from "./pages/Formacao";
+// import NovoDiario from "./pages/NovoDiario";
 
 function App() {
   return (
-    <React.StrictMode>
-      <DiarioProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </DiarioProvider>
-    </React.StrictMode>
+    <ChakraProvider>
+      <Router>
+        <Routes>
+          {/* 1. ROTAS SEM MOLDURA (Aparecem em ecrã inteiro) */}
+          <Route path="/" element={<Login />} />
+          {/* Se tiveres página de Registo ou Esqueceu a Palavra-passe, põe aqui */}
+
+          {/* 2. ROTAS COM MOLDURA (Dashboard) */}
+          <Route
+            path="/*"
+            element={
+              <MainLayout>
+                <Routes>
+                  {/* Todas as tuas páginas do sistema entram aqui! */}
+                  <Route path="/diarios" element={<DiarioList />} />
+                  {/* <Route path="/novoDiario" element={<NovoDiario />} /> */}
+                  {/* <Route path="/editarDiario/:id" element={<EditarDiario />} /> */}
+                  {/* <Route path="/formacao" element={<Formacao />} /> */}
+                </Routes>
+              </MainLayout>
+            }
+          />
+        </Routes>
+      </Router>
+    </ChakraProvider>
   );
 }
 
