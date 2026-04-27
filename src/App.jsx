@@ -6,12 +6,12 @@ import { DiarioProvider } from "./contexts/DiarioContext";
 
 // Importa Layout e as Páginas
 import MainLayout from "./components/MainLayout";
-import Login from "./pages/Login";
-import DiarioList from "./pages/DiarioList";
-import FormacaoList from "./pages/Formacao";
-import Diario from "./pages/Diario";
+import Login from "./pages/login";
+import DiarioList from "./pages/diarioList";
+import FormacaoList from "./pages/formacao";
+import Diario from "./pages/diario";
 // Garante que o ficheiro na pasta se chama MinhaConta.jsx (com "M" maiúsculo)
-import MinhaConta from "./pages/MinhaConta"; 
+import MinhaConta from "./pages/minhaConta"; 
 
 function App() {
   return (
