@@ -4,12 +4,12 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { DiarioProvider } from "./contexts/DiarioContext";
 // Importa Layout e as Páginas
-import MainLayout from "./components/MainLayout";
-import Login from "./pages/Login";
-import DiarioList from "./pages/DiarioList";
-import FormacaoList from "./pages/Formacao";
-import Diario from "./pages/Diario";
-import MinhaConta from "./pages/minhaConta";
+import { MainLayout } from "./components/MainLayout";
+import { Login } from "./pages/Login";
+import {DiarioList} from "./pages/DiarioList";
+import {FormacaoList} from "./pages/Formacao";
+import {Diario} from "./pages/Diario";
+import {MinhaConta} from "./pages/minhaConta";
 
 function App() {
   return (
